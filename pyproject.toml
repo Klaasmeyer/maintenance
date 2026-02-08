@@ -25,6 +25,7 @@ dependencies = [
     "openpyxl>=3.1",  # for pandas Excel support
     "geopandas>=1.0",  # for geospatial data analysis
     "pyogrio>=0.9",    # for fast GeoPackage I/O
+    "tqdm>=4.66",      # for progress bars
 ]
 
 [project.optional-dependencies]
