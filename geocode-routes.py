@@ -23,6 +23,7 @@ Note:
 
 import os
 import json
+import re
 import time
 import logging
 from pathlib import Path
@@ -102,6 +103,66 @@ def normalize_text(s: Any) -> str:
     return str(s).strip()
 
 
+# Ordered longest-match-first so greedy patterns don't shadow shorter ones.
+_ROAD_TYPE_MAP = [
+    (re.compile(r"state\s+highway"),                "sh"),
+    (re.compile(r"state\s+hwy"),                    "sh"),
+    (re.compile(r"st\s+hwy"),                       "sh"),
+    (re.compile(r"farm\s+to\s+market(?:\s+(?:rd|road))?"), "fm"),
+    (re.compile(r"ranch\s+to\s+market(?:\s+(?:rd|road))?"), "rm"),
+    (re.compile(r"ranch\s+(?:rd|road)"),            "rm"),
+    (re.compile(r"county\s+(?:rd|road)"),           "cr"),
+    (re.compile(r"co\s+rd"),                        "cr"),
+    (re.compile(r"park\s+road"),                    "pr"),
+    (re.compile(r"interstate"),                     "i"),
+    (re.compile(r"ih"),                             "i"),
+    (re.compile(r"highway"),                        "hwy"),
+    (re.compile(r"texas"),                          "tx"),
+    (re.compile(r"business"),                       "bus"),
+]
+
+# Pattern to strip trailing "rd"/"road" after a road-type-prefix + number,
+# e.g. "ne 100 rd" → "ne 100".  Only fires when the token before the number
+# is a short directional or road-type abbreviation (2–3 chars).
+_TRAILING_RD_RE = re.compile(r"^([a-z]{1,3}\s+\d+)\s+(?:rd|road)$")
+
+# Interstate cleanup: "i 20" / "i- 20" / "i -20" → "i-20"
+_INTERSTATE_RE = re.compile(r"^(i)\s*-?\s*(\d+.*)$")
+
+
+def normalize_road_name(name: str) -> str:
+    """Canonicalize road name variants so equivalent names produce the same key.
+
+    Expects *already-lowercased* input (as produced by normalize_text().lower()).
+    """
+    if not name:
+        return name
+
+    # Collapse runs of whitespace / dashes into a single space.
+    name = re.sub(r"[\s\-]+", " ", name).strip()
+
+    # Prefix canonicalization (longest match first).
+    for pattern, replacement in _ROAD_TYPE_MAP:
+        name, n = pattern.subn(replacement, name, count=1)
+        if n:
+            # Re-collapse in case substitution introduced extra space.
+            name = re.sub(r"\s+", " ", name).strip()
+            break
+
+    # Normalize interstate format: "i 20" → "i-20"
+    m = _INTERSTATE_RE.match(name)
+    if m:
+        name = f"i-{m.group(2)}"
+        name = re.sub(r"\s+", " ", name).strip()
+
+    # Strip trailing "rd"/"road" from short-prefix + number patterns.
+    m = _TRAILING_RD_RE.match(name)
+    if m:
+        name = m.group(1)
+
+    return name
+
+
 def libpostal_normalize_address(line: str) -> str:
     line = normalize_text(line)
     if not line:
@@ -131,8 +192,8 @@ def make_geo_key(
         normalize_text(county).lower(),
         normalize_text(city).lower(),
         ("intersection" if is_intersection else "address"),
-        normalize_text(street).lower(),
-        normalize_text(intersection).lower(),
+        normalize_road_name(normalize_text(street).lower()),
+        normalize_road_name(normalize_text(intersection).lower()),
     ]
     return "|".join(parts)
 
