@@ -415,6 +415,22 @@ def write_county_jsonl(
     )
 
 
+def build_geocode_query(
+    street: str, intersection: str, is_intersection: bool
+) -> str:
+    """Build the raw address line to send for geocoding.
+
+    For intersections where both road names are available, combines them
+    (e.g. "TX 302 and FM 1232") so the geocoder can locate the actual
+    intersection point.
+    """
+    if is_intersection and street and intersection:
+        return f"{street} and {intersection}"
+    if is_intersection:
+        return intersection
+    return street
+
+
 # ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
@@ -502,8 +518,7 @@ def main():
             county, city, street, intersection, is_intersection = rep_by_geo_key[gk]
 
             # Build raw "line" to be validated / normalized
-            # For intersections, we pass intersection name; for addresses, street.
-            raw_line = intersection if is_intersection else street
+            raw_line = build_geocode_query(street, intersection, is_intersection)
 
             # libpostal normalize first
             normalized_line = libpostal_normalize_address(raw_line)
