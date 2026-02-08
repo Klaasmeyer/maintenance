@@ -1,0 +1,21 @@
+{
+  "total_failed_tickets": 728,
+  "proximity_successes": 728,
+  "proximity_failures": 0,
+  "success_rate": 100.0,
+  "original_geocoding_success_rate": 96.92,
+  "new_overall_success_rate": 100.0,
+  "improvement": 3.08,
+  "approach_breakdown": {
+    "corridor_midpoint": 186,
+    "closest_point": 475,
+    "city_primary": 57,
+    "city_centroid_fallback": 10
+  },
+  "failure_reasons": {},
+  "confidence_stats": {
+    "average": 0.8416,
+    "min": 0.35,
+    "max": 0.95
+  }
+}

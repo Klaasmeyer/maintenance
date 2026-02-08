@@ -1,0 +1,26 @@
+{
+  "total_geocoded": 728,
+  "total_flagged": 157,
+  "flagged_percentage": 21.57,
+  "severity_breakdown": {
+    "MEDIUM": 147,
+    "HIGH": 10
+  },
+  "top_issues": {
+    "Low confidence: 60.0%": 94,
+    "Location 62.3km from BARSTOW center": 26,
+    "Low confidence: 35.0%; City centroid fallback used (both roads missing)": 10,
+    "Low confidence: 50.0%": 6,
+    "Location 58.0km from ANDREWS center": 4,
+    "Location 82.1km from BARSTOW center": 4,
+    "Location 96.1km from MONAHANS center": 4,
+    "Low confidence: 50.0%; Location 100.7km from PYOTE center": 3,
+    "Location 102.4km from BARSTOW center": 3,
+    "Low confidence: 60.0%; Location 112.5km from BARSTOW center": 2
+  },
+  "flagged_confidence_stats": {
+    "average": 0.6048,
+    "min": 0.35,
+    "max": 0.95
+  }
+}
