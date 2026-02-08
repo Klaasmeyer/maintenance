@@ -6,7 +6,7 @@ from pathlib import Path
 # Allow importing from project root
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from purge_stale_cache import is_new_format, is_geocode_ok, purge_cache
+from purge_stale_cache import is_geocode_ok, is_new_format, purge_cache
 
 
 def _old_format_entry():
@@ -33,8 +33,18 @@ def _new_format_ok():
         "is_intersection": True,
         "raw_line": "TX-176",
         "normalized_line": "TX-176",
-        "validation": {"status": "ok", "raw_address": "TX-176", "validated_address": "TX-176"},
-        "geocode": {"status": "OK", "lat": 32.32, "lng": -102.28, "formatted_address": "TX-176, Texas, USA", "place_id": "abc"},
+        "validation": {
+            "status": "ok",
+            "raw_address": "TX-176",
+            "validated_address": "TX-176",
+        },
+        "geocode": {
+            "status": "OK",
+            "lat": 32.32,
+            "lng": -102.28,
+            "formatted_address": "TX-176, Texas, USA",
+            "place_id": "abc",
+        },
     }
 
 
@@ -48,8 +58,18 @@ def _new_format_zero_results():
         "is_intersection": True,
         "raw_line": "CR 888",
         "normalized_line": "CR 888",
-        "validation": {"status": "ok", "raw_address": "CR 888", "validated_address": "CR 888"},
-        "geocode": {"status": "ZERO_RESULTS", "lat": None, "lng": None, "formatted_address": "", "place_id": ""},
+        "validation": {
+            "status": "ok",
+            "raw_address": "CR 888",
+            "validated_address": "CR 888",
+        },
+        "geocode": {
+            "status": "ZERO_RESULTS",
+            "lat": None,
+            "lng": None,
+            "formatted_address": "",
+            "place_id": "",
+        },
     }
 
 
@@ -63,8 +83,18 @@ def _new_format_exception():
         "is_intersection": True,
         "raw_line": "HWY 18",
         "normalized_line": "HWY 18",
-        "validation": {"status": "error", "raw_address": "HWY 18", "validated_address": "HWY 18"},
-        "geocode": {"status": "exception", "lat": None, "lng": None, "formatted_address": "", "place_id": ""},
+        "validation": {
+            "status": "error",
+            "raw_address": "HWY 18",
+            "validated_address": "HWY 18",
+        },
+        "geocode": {
+            "status": "exception",
+            "lat": None,
+            "lng": None,
+            "formatted_address": "",
+            "place_id": "",
+        },
     }
 
 

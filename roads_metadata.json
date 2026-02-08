@@ -1,0 +1,27 @@
+{
+  "total_roads": 1969,
+  "bbox": {
+    "min_lon": -103.55,
+    "min_lat": 31.349999999999998,
+    "max_lon": -101.95,
+    "max_lat": 32.65
+  },
+  "counties": [
+    "Andrews",
+    "Ward",
+    "Winkler"
+  ],
+  "road_type_counts": {
+    "TX_SH": 602,
+    "Interstate": 354,
+    "OTHER": 270,
+    "OTHER_NUMBERED": 214,
+    "CR": 176,
+    "FM": 168,
+    "US": 94,
+    "CR_NUMBERED": 86,
+    "RM": 5
+  },
+  "crs": "EPSG:4326",
+  "date_downloaded": "2026-02-08T12:19:23.623701"
+}

@@ -17,7 +17,15 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "pandas>=2.0",
+    "requests>=2.31",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+    "openpyxl>=3.1",  # for pandas Excel support
+    "geopandas>=1.0",  # for geospatial data analysis
+    "pyogrio>=0.9",    # for fast GeoPackage I/O
+]
 
 [project.optional-dependencies]
 dev = [
@@ -26,6 +34,9 @@ dev = [
     "mypy>=1.8",
     "ruff>=0.3",
     "hypothesis>=6.0",
+]
+postal = [
+    "postal>=1.1",  # requires libpostal C library: brew install libpostal
 ]
 
 [project.scripts]

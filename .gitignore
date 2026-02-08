@@ -67,3 +67,10 @@ dmypy.json
 
 # OS files
 Thumbs.db
+
+# Generated data files
+*.gpkg
+*.gpkg-shm
+*.gpkg-wal
+*_report.json
+*_failures.csv
