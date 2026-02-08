@@ -91,6 +91,12 @@ class GeometricGeocoder:
         self.roads = gpd.read_file(self.roads_file, layer="roads")
         logging.info(f"Loaded {len(self.roads)} road segments")
 
+        # Normalize column names for compatibility
+        if "road_name" in self.roads.columns and "name" not in self.roads.columns:
+            self.roads["name"] = self.roads["road_name"]
+        if "road_ref" in self.roads.columns and "ref" not in self.roads.columns:
+            self.roads["ref"] = self.roads["road_ref"]
+
     def _normalize_road_name(self, name: str) -> str:
         """Normalize road name for matching.
 

@@ -25,9 +25,9 @@ from geometric_geocoder import GeometricGeocoder
 logging.basicConfig(level=logging.WARNING, format="[%(levelname)s] %(message)s")
 
 FAILURES_FILE = Path("ticket_failures.csv")
-ROADS_FILE = Path("roads.gpkg")
-OUTPUT_RESULTS = Path("geometric_results.csv")
-OUTPUT_SUMMARY = Path("geometric_summary.json")
+ROADS_FILE = Path("roads_merged.gpkg")  # Use merged OSM + TxDOT data
+OUTPUT_RESULTS = Path("geometric_results_merged.csv")
+OUTPUT_SUMMARY = Path("geometric_summary_merged.json")
 
 
 def main():
