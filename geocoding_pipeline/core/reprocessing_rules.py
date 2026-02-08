@@ -7,7 +7,7 @@ reprocessed based on quality tier, confidence, locks, and stage rules.
 
 from typing import Dict, Any, Optional
 
-from ..cache.models import GeocodeRecord, QualityTier
+from cache.models import GeocodeRecord, QualityTier
 
 
 class ReprocessingDecider:

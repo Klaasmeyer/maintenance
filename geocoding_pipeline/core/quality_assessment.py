@@ -8,7 +8,7 @@ method, validation flags, and business rules.
 from typing import List, Optional
 from enum import Enum
 
-from ..cache.models import QualityTier, ReviewPriority
+from cache.models import QualityTier, ReviewPriority
 
 
 class QualityAssessor:
