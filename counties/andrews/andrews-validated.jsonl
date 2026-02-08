@@ -1,0 +1,2 @@
+{"geo_key": "||Andrews|Andrews", "county": "Andrews", "city": "Andrews", "street": null, "intersection": null, "is_intersection": null, "raw_line": null, "normalized_line": null, "validation_status": null, "validated_address": null, "validation_error": null}
+{"geo_key": "andrews|andrews|address||", "county": "Andrews", "city": "Andrews", "street": "", "intersection": "", "is_intersection": false, "raw_line": "", "normalized_line": "", "validation_status": "skipped", "validated_address": "", "validation_error": "no_address_line"}
