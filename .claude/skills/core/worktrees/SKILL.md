@@ -1,0 +1,177 @@
+---
+name: worktrees
+description: Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with beads integration via bd worktree commands
+---
+
+# Git Worktrees
+
+Git worktrees create isolated workspaces sharing the same repository, allowing work on multiple branches simultaneously without switching.
+
+**Primary tool:** `bd worktree` - handles git worktree + beads integration automatically.
+
+---
+
+## When to Use
+
+- Parallel subagents need filesystem isolation
+- Feature work that shouldn't affect current workspace
+- Separate builds/servers running simultaneously
+- Before executing implementation plans
+
+---
+
+## Creating a Worktree
+
+Use `bd worktree create` - it handles everything:
+
+```bash
+bd worktree create feature-auth
+```
+
+**What it does automatically:**
+1. Creates git worktree at `./<name>` (or `.worktrees/<name>` if configured)
+2. Sets up `.beads/redirect` pointing to main repo's database
+3. Adds worktree path to `.gitignore`
+
+**With custom branch name:**
+```bash
+bd worktree create bugfix --branch fix-123
+```
+
+**At specific path:**
+```bash
+bd worktree create .worktrees/feature-auth
+```
+
+---
+
+## After Creation
+
+### 1. Enter Worktree
+
+```bash
+cd feature-auth  # or .worktrees/feature-auth
+```
+
+### 2. Verify Baseline
+
+```bash
+make test  # Verify tests pass
+```
+
+**If tests fail:** Report failures, ask whether to proceed.
+
+### 3. Verify Beads Shared
+
+```bash
+bd ready  # Should show same beads as main workspace
+```
+
+---
+
+## Listing Worktrees
+
+```bash
+bd worktree list
+```
+
+Or standard git:
+```bash
+git worktree list
+```
+
+---
+
+## Removing a Worktree
+
+Use `bd worktree remove` - includes safety checks:
+
+```bash
+bd worktree remove feature-auth
+```
+
+**Safety checks (automatic):**
+- Uncommitted changes
+- Unpushed commits
+- Stashes
+
+**Skip checks (not recommended):**
+```bash
+bd worktree remove feature-auth --force
+```
+
+---
+
+## Worktree Info
+
+Check current worktree status:
+
+```bash
+bd worktree info
+```
+
+---
+
+## Quick Reference
+
+| Task | Command |
+|------|---------|
+| Create worktree | `bd worktree create <name>` |
+| Create with branch | `bd worktree create <name> --branch <branch>` |
+| List worktrees | `bd worktree list` |
+| Remove worktree | `bd worktree remove <name>` |
+| Check status | `bd worktree info` |
+| Verify beads sync | `bd ready` (in worktree) |
+
+---
+
+## Why bd worktree?
+
+| Manual git worktree | bd worktree |
+|---------------------|-------------|
+| Separate commands for git + beads | Single command |
+| Manual .gitignore management | Automatic |
+| No beads redirect setup | Automatic redirect to main DB |
+| No safety checks on remove | Checks for uncommitted/unpushed |
+
+---
+
+## Example Workflow
+
+```bash
+# Create isolated workspace
+bd worktree create .worktrees/feature-auth
+
+# Enter and verify
+cd .worktrees/feature-auth
+make test  # Verify baseline
+
+# Verify beads shared
+bd ready  # Shows same issues as main
+
+# Work on feature...
+bd claim auth-001
+
+# When done
+cd ../..
+bd worktree remove .worktrees/feature-auth
+```
+
+---
+
+## Fallback (No Beads)
+
+If beads isn't installed, use manual git worktree:
+
+```bash
+# Verify ignored
+git check-ignore -q .worktrees || echo '.worktrees/' >> .gitignore
+
+# Create
+git worktree add .worktrees/feature-auth -b feature-auth
+
+# Remove
+git worktree remove .worktrees/feature-auth
+```
+
+But you lose: automatic gitignore, beads sync, and safety checks.

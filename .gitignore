@@ -1,4 +1,69 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
 .DS_Store
-.venv/
+
+# Output
+output/
+
+# Local env
+.env
+.env.local
+
+# History (subagent logs)
+history/
+
+# Python bytecode
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Distribution / packaging
+dist/
+build/
+eggs/
+*.egg
+*.egg-info/
+.eggs/
+MANIFEST
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# Linting
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Local development
+.env.local
+.env.*.local
+*.local
+
+# OS files
+Thumbs.db
