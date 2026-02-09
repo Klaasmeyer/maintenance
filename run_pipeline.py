@@ -23,6 +23,7 @@ from cache.cache_manager import CacheManager
 from stages.stage_3_proximity import Stage3ProximityGeocoder
 from stages.stage_5_validation import Stage5Validation
 from stages.stage_6_enrichment import Stage6Enrichment
+from utils.ticket_loader import TicketLoader
 
 def main():
     print("="*80)
@@ -56,21 +57,23 @@ def main():
 
     # Load ticket data
     print("📊 Loading ticket data...")
-    df = pd.read_csv(input_csv)
-    print(f"   Loaded {len(df)} tickets")
-    print()
 
-    # Prepare ticket data
-    tickets = []
-    for _, row in df.iterrows():
-        tickets.append({
-            "ticket_number": str(row["Number"]),
-            "county": row.get("County", ""),
-            "city": row.get("City", ""),
-            "street": row.get("Street", ""),
-            "intersection": row.get("Intersection", ""),
-        })
+    # Use TicketLoader to support both files and directory structures
+    loader = TicketLoader(normalize_columns=True)
+    df = loader.load(input_csv)
 
+    # Show loading summary
+    if '_source_file' in df.columns:
+        num_files = df['_source_file'].nunique()
+        if num_files > 1:
+            print(f"   Loaded {len(df)} tickets from {num_files} file(s)")
+        else:
+            print(f"   Loaded {len(df)} tickets")
+    else:
+        print(f"   Loaded {len(df)} tickets")
+
+    # Prepare tickets for pipeline
+    tickets = loader.prepare_tickets(df)
     print(f"   Prepared {len(tickets)} tickets for processing")
     print()
 

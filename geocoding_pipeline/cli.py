@@ -17,6 +17,7 @@ from config_manager import ConfigManager
 from stages.stage_3_proximity import Stage3ProximityGeocoder
 from stages.stage_5_validation import Stage5Validation
 from stages.stage_6_enrichment import Stage6Enrichment
+from utils.ticket_loader import TicketLoader
 
 
 def main():
@@ -25,8 +26,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run pipeline on tickets with default config
+  # Run pipeline on single CSV file
   %(prog)s tickets.csv --output results.csv
+
+  # Run pipeline on directory structure (tickets/[county]/[year]/)
+  %(prog)s projects/floydada/tickets --output results.csv
 
   # Use custom configuration
   %(prog)s tickets.csv --config my_config.yaml
@@ -47,7 +51,7 @@ Examples:
         'input_file',
         nargs='?',
         type=Path,
-        help='Input CSV file with ticket data (required unless using --export-cache or --stats)'
+        help='Input CSV/Excel file or directory with ticket data (supports tickets/[county]/[year]/ structure)'
     )
     parser.add_argument(
         '-o', '--output',
@@ -219,23 +223,27 @@ Examples:
         print(f"📊 Loading tickets from {args.input_file}...")
 
     try:
-        df = pd.read_csv(args.input_file)
-    except Exception as e:
-        print(f"❌ Error loading CSV: {e}", file=sys.stderr)
-        return 1
+        # Use TicketLoader to support both files and directory structures
+        loader = TicketLoader(normalize_columns=True)
+        df = loader.load(args.input_file)
 
-    tickets = []
-    for _, row in df.iterrows():
-        tickets.append({
-            'ticket_number': str(row.get('Number', row.get('ticket_number', ''))),
-            'county': row.get('County', row.get('county', '')),
-            'city': row.get('City', row.get('city', '')),
-            'street': row.get('Street', row.get('street', '')),
-            'intersection': row.get('Intersection', row.get('intersection', '')),
-            'ticket_type': row.get('Ticket Type', row.get('ticket_type')),
-            'duration': row.get('Duration', row.get('duration')),
-            'work_type': row.get('Nature of Work', row.get('work_type')),
-        })
+        if not args.quiet:
+            # Show loading summary
+            if '_source_file' in df.columns:
+                num_files = df['_source_file'].nunique()
+                if num_files > 1:
+                    print(f"   Loaded {len(df)} tickets from {num_files} file(s)")
+                else:
+                    print(f"   Loaded {len(df)} tickets")
+            else:
+                print(f"   Loaded {len(df)} tickets")
+
+        # Prepare tickets for pipeline
+        tickets = loader.prepare_tickets(df)
+
+    except Exception as e:
+        print(f"❌ Error loading tickets: {e}", file=sys.stderr)
+        return 1
 
     if not args.quiet:
         print(f"   Loaded {len(tickets)} tickets")

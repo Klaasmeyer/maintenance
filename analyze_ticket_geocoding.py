@@ -20,13 +20,15 @@ import pandas as pd
 # Import project path utilities
 try:
     from geocoding_pipeline.utils.project_paths import resolve_project_file
+    from geocoding_pipeline.utils.ticket_loader import TicketLoader
 except ImportError:
     # Fallback if utils not available
     def resolve_project_file(project_name, resource_type, filename, base_dir=Path("projects")):
         return base_dir / project_name / resource_type / filename
+    TicketLoader = None
 
 # Default paths (can be overridden by CLI args)
-INPUT_FILE = Path("projects/wink/tickets/wink-intersection.csv")
+INPUT_FILE = Path("projects/wink/tickets")  # Now supports directory structures
 OUTPUT_REPORT = Path("ticket_analysis_report.json")
 OUTPUT_CSV = Path("ticket_failures.csv")
 
@@ -297,7 +299,7 @@ def main() -> None:
     parser.add_argument(
         "--input",
         type=Path,
-        help="Input CSV file path (overrides --project)",
+        help="Input CSV/Excel file or directory with tickets (overrides --project)",
     )
     parser.add_argument(
         "--output-report",
@@ -314,31 +316,37 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Determine input file
+    # Determine input path (file or directory)
     if args.input:
-        input_file = args.input
+        input_path = args.input
     elif args.project:
-        # Auto-resolve project path - look for CSV files in tickets directory
-        from glob import glob
-        project_tickets_dir = Path("projects") / args.project / "tickets"
-        csv_files = list(project_tickets_dir.glob("*.csv"))
-        if not csv_files:
-            logging.error(f"No CSV files found in {project_tickets_dir}")
-            return
-        if len(csv_files) > 1:
-            logging.warning(f"Multiple CSV files found, using first: {csv_files[0]}")
-        input_file = csv_files[0]
+        # Auto-resolve project path - use tickets directory
+        input_path = Path("projects") / args.project / "tickets"
     else:
-        input_file = INPUT_FILE
+        input_path = INPUT_FILE
 
-    if not input_file.exists():
-        logging.error(f"Input file not found: {input_file}")
+    if not input_path.exists():
+        logging.error(f"Input path not found: {input_path}")
         logging.info("Please ensure the ticket dataset is at the expected location.")
-        logging.info("Use --project <name> or --input <path> to specify input file.")
+        logging.info("Use --project <name> or --input <path> to specify input.")
         return
 
-    logging.info(f"Loading tickets from {input_file}")
-    df = pd.read_csv(input_file, low_memory=False)
+    # Load tickets using TicketLoader if available (supports directory structures)
+    if TicketLoader is not None and input_path.is_dir():
+        logging.info(f"Loading tickets from directory: {input_path}")
+        try:
+            loader = TicketLoader(normalize_columns=True)
+            df = loader.load(input_path)
+            if '_source_file' in df.columns:
+                num_files = df['_source_file'].nunique()
+                logging.info(f"Loaded {len(df):,} tickets from {num_files} file(s)")
+        except Exception as e:
+            logging.error(f"Failed to load tickets: {e}")
+            return
+    else:
+        # Single file loading (legacy)
+        logging.info(f"Loading tickets from {input_path}")
+        df = pd.read_csv(input_path, low_memory=False)
 
     logging.info(f"Analyzing {len(df):,} tickets...")
     analysis = analyze_tickets(df)
