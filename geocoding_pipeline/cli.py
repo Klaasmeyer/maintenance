@@ -18,6 +18,7 @@ from stages.stage_3_proximity import Stage3ProximityGeocoder
 from stages.stage_5_validation import Stage5Validation
 from stages.stage_6_enrichment import Stage6Enrichment
 from utils.ticket_loader import TicketLoader
+from utils.maintenance_estimate import generate_maintenance_estimate
 
 
 def main():
@@ -108,6 +109,17 @@ Examples:
         '--fail-fast',
         action='store_true',
         help='Stop pipeline on first error'
+    )
+    parser.add_argument(
+        '--generate-estimate',
+        type=Path,
+        metavar='KMZ_FILE',
+        help='Generate maintenance cost estimate using route KMZ file (e.g., projects/wink/route/wink.kmz)'
+    )
+    parser.add_argument(
+        '--estimate-output',
+        type=Path,
+        help='Output path for maintenance estimate (default: maintenance_estimate_TIMESTAMP.xlsx)'
     )
 
     # Review queue options
@@ -328,6 +340,53 @@ Examples:
     )
     if not args.quiet:
         print(f"📁 Generated review queue with {review_count} tickets at {review_path}")
+
+    # Generate maintenance estimate if requested
+    if args.generate_estimate:
+        if not args.generate_estimate.exists():
+            print(f"\n❌ Error: KMZ file not found: {args.generate_estimate}", file=sys.stderr)
+            return 1
+
+        if not args.quiet:
+            print(f"\n📊 Generating maintenance estimate using {args.generate_estimate}...")
+
+        try:
+            # Read exported results for estimate generation
+            results_df = pd.read_csv(output_path)
+
+            # Filter to only include geocoded tickets (exclude FAILED)
+            results_df = results_df[
+                (results_df['latitude'].notna()) &
+                (results_df['longitude'].notna())
+            ]
+
+            if args.estimate_output:
+                estimate_path = args.estimate_output
+            else:
+                estimate_path = Path(f'maintenance_estimate_{timestamp}.xlsx')
+
+            # Extract project name from config or use default
+            project_name = "Project"
+            if args.config:
+                project_name = args.config.stem.replace('_', ' ').title()
+
+            generate_maintenance_estimate(
+                tickets_df=results_df,
+                kmz_path=args.generate_estimate,
+                output_path=estimate_path,
+                project_name=project_name,
+                buffer_distance_m=500.0
+            )
+
+            if not args.quiet:
+                print(f"✅ Maintenance estimate saved to {estimate_path}")
+
+        except Exception as e:
+            print(f"\n❌ Error generating maintenance estimate: {e}", file=sys.stderr)
+            import traceback
+            if args.verbose:
+                traceback.print_exc()
+            return 1
 
     return 0
 
