@@ -105,12 +105,16 @@ class Pipeline:
         print(f"Stages: {len(self.stages)}")
         print(f"{'='*80}\n")
 
-        # Record pipeline run in database
-        self._record_pipeline_run(
-            pipeline_id=pipeline_id,
-            config=self.config,
-            ticket_count=len(tickets)
-        )
+        # Record pipeline run in database (optional)
+        try:
+            self._record_pipeline_run(
+                pipeline_id=pipeline_id,
+                config=self.config,
+                ticket_count=len(tickets)
+            )
+        except Exception as e:
+            print(f"⚠️  Warning: Could not record pipeline run to database: {e}")
+            print(f"   Continuing with pipeline execution...")
 
         # Run each stage
         stage_statistics = []
@@ -168,12 +172,15 @@ class Pipeline:
         # Print final summary
         self._print_summary(result)
 
-        # Update pipeline run status
-        self._update_pipeline_run(
-            pipeline_id=pipeline_id,
-            status="completed",
-            results=result.to_dict()
-        )
+        # Update pipeline run status (optional)
+        try:
+            self._update_pipeline_run(
+                pipeline_id=pipeline_id,
+                status="completed",
+                results=result.to_dict()
+            )
+        except Exception as e:
+            print(f"⚠️  Warning: Could not update pipeline run status: {e}")
 
         return result
 
@@ -284,11 +291,14 @@ class Pipeline:
         import csv
 
         # Query cache for records
-        query_kwargs = {}
-        if quality_filter:
-            query_kwargs["quality_tier"] = quality_filter
+        from cache.models import CacheQuery
 
-        records = self.cache_manager.query(**query_kwargs)
+        if quality_filter:
+            query = CacheQuery(quality_tier=quality_filter)
+        else:
+            query = CacheQuery()
+
+        records = self.cache_manager.query(query)
 
         # Write to CSV
         with open(output_path, 'w', newline='') as f:
@@ -344,25 +354,22 @@ class Pipeline:
             Number of records in review queue
         """
         import csv
+        from cache.models import CacheQuery, ReviewPriority
 
         # Query for records needing review
-        query_kwargs = {}
         if priority_filter:
-            from cache.models import ReviewPriority
-            query_kwargs["review_priority"] = [
-                ReviewPriority(p) for p in priority_filter
-            ]
+            review_priorities = [ReviewPriority(p) for p in priority_filter]
         else:
             # Default to all non-NONE priorities
-            from cache.models import ReviewPriority
-            query_kwargs["review_priority"] = [
+            review_priorities = [
                 ReviewPriority.LOW,
                 ReviewPriority.MEDIUM,
                 ReviewPriority.HIGH,
                 ReviewPriority.CRITICAL
             ]
 
-        records = self.cache_manager.query(**query_kwargs)
+        query = CacheQuery(review_priority=review_priorities)
+        records = self.cache_manager.query(query)
 
         # Sort by priority (CRITICAL first)
         priority_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
