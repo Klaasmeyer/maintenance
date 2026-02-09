@@ -179,7 +179,7 @@ class FallbackGeocodeRule(ValidationRule):
 
 class MissingRoadRule(ValidationRule):
     """Flag geocodes where one road is missing."""
-    
+
     def check(self, approach: Optional[str], **kwargs) -> Optional[ValidationResult]:
         if approach == "city_primary":
             return ValidationResult(
@@ -187,6 +187,56 @@ class MissingRoadRule(ValidationRule):
                 severity="WARNING",
                 message="One road not found in network; used city + available road",
                 action="Consider finding missing road for more precise location"
+            )
+        return None
+
+
+class PipelineMismatchRule(ValidationRule):
+    """Flag geocodes far from known pipeline infrastructure."""
+
+    def __init__(self, max_distance_m: float = 500.0):
+        self.max_distance_m = max_distance_m
+
+    def check(self, **kwargs) -> Optional[ValidationResult]:
+        # Check if pipeline proximity metadata is available
+        metadata = kwargs.get("metadata", {})
+        if not metadata:
+            return None
+
+        pipeline_distance = metadata.get("pipeline_proximity_m")
+        if pipeline_distance is None:
+            return None
+
+        # Flag if distance exceeds threshold
+        if pipeline_distance > self.max_distance_m:
+            return ValidationResult(
+                flag="pipeline_mismatch",
+                severity="WARNING",
+                message=f"Location {pipeline_distance:.1f}m from known pipeline infrastructure (max: {self.max_distance_m:.1f}m)",
+                action="Verify work is at expected location relative to pipeline network"
+            )
+        return None
+
+
+class OutOfCorridorRule(ValidationRule):
+    """Flag geocodes outside expected route corridor."""
+
+    def check(self, **kwargs) -> Optional[ValidationResult]:
+        # Check if corridor metadata is available
+        metadata = kwargs.get("metadata", {})
+        if not metadata:
+            return None
+
+        within_corridor = metadata.get("within_corridor")
+        distance_from_centerline = metadata.get("distance_from_centerline_m")
+
+        # Flag if outside corridor
+        if within_corridor is False and distance_from_centerline is not None:
+            return ValidationResult(
+                flag="out_of_corridor",
+                severity="WARNING",
+                message=f"Location {distance_from_centerline:.1f}m from expected route corridor",
+                action="Verify work location is correct for this project"
             )
         return None
 
@@ -211,6 +261,8 @@ class ValidationEngine:
             CityDistanceRule(max_km=50),
             FallbackGeocodeRule(),
             MissingRoadRule(),
+            PipelineMismatchRule(max_distance_m=500.0),
+            OutOfCorridorRule(),
         ]
     
     def validate(self, **geocode_data) -> List[ValidationResult]:

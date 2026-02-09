@@ -26,6 +26,8 @@ dependencies = [
     "geopandas>=1.0",  # for geospatial data analysis
     "pyogrio>=0.9",    # for fast GeoPackage I/O
     "tqdm>=4.66",      # for progress bars
+    "pyyaml>=6.0",     # for YAML configuration files
+    "fiona>=1.9",      # for reading KMZ/KML files
 ]
 
 [project.optional-dependencies]

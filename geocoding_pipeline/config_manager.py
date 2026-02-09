@@ -21,6 +21,8 @@ class PipelineConfig:
     fail_fast: bool = False
     save_intermediate: bool = True
     output_dir: Path = Path("outputs")
+    config_version: int = 1
+    project_root: Optional[Path] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -31,6 +33,8 @@ class PipelineConfig:
             "fail_fast": self.fail_fast,
             "save_intermediate": self.save_intermediate,
             "output_dir": str(self.output_dir),
+            "config_version": self.config_version,
+            "project_root": str(self.project_root) if self.project_root else None,
         }
 
 
@@ -73,13 +77,16 @@ class ConfigManager:
         with open(path, 'r') as f:
             config = yaml.safe_load(f)
 
-        # Perform environment variable substitution
+        # Store raw config first (needed for project_root resolution)
+        self._config = config
+
+        # Perform environment variable substitution (includes project_root)
         config = self._substitute_env_vars(config)
 
         # Validate configuration
         self._validate_config(config)
 
-        # Store raw config
+        # Update stored config with substituted values
         self._config = config
 
         # Create PipelineConfig
@@ -111,6 +118,9 @@ class ConfigManager:
     def _substitute_env_var_string(self, value: str) -> str:
         """Substitute environment variables in a string.
 
+        Supports both environment variables and project_root template variable.
+        Syntax: ${VAR_NAME} or ${VAR_NAME:default_value}
+
         Args:
             value: String potentially containing ${VAR} syntax
 
@@ -125,6 +135,13 @@ class ConfigManager:
         def replacer(match):
             var_name = match.group(1)
             default_value = match.group(2) if match.group(2) is not None else ""
+
+            # Special handling for project_root
+            if var_name == "project_root":
+                # Get project_root from config if available
+                if self._config and "project_root" in self._config:
+                    return self._config["project_root"]
+                return default_value
 
             # Get from environment or use default
             return os.environ.get(var_name, default_value)
@@ -184,6 +201,14 @@ class ConfigManager:
         # Get output directory (default to outputs/)
         output_dir = Path(config.get("output_dir", "outputs")).expanduser()
 
+        # Get config version (default to 1 for backward compatibility)
+        config_version = config.get("config_version", 1)
+
+        # Get project root if specified
+        project_root = None
+        if "project_root" in config:
+            project_root = Path(config["project_root"]).expanduser()
+
         # Filter enabled stages only
         enabled_stages = {
             name: stage_config
@@ -198,6 +223,8 @@ class ConfigManager:
             fail_fast=config.get("fail_fast", False),
             save_intermediate=config.get("save_intermediate", True),
             output_dir=output_dir,
+            config_version=config_version,
+            project_root=project_root,
         )
 
     def get_stage_config(self, stage_name: str) -> Dict[str, Any]:

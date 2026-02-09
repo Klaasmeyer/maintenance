@@ -1,0 +1,97 @@
+# Wink Project - Full Pipeline Configuration
+# Includes all Phase 2 enhancements: pipeline proximity, route corridor, enrichment
+
+name: "wink_project_full"
+config_version: 2
+project_root: "projects/wink"
+
+cache:
+  db_path: "${project_root}/cache/geocoding_cache.db"
+
+output_dir: "${project_root}/outputs"
+
+fail_fast: false
+save_intermediate: true
+
+stages:
+  # Stage 1: API-based geocoding (stub - not yet implemented)
+  stage_1_api:
+    enabled: false
+    skip_rules:
+      skip_if_quality: ["EXCELLENT"]
+      skip_if_locked: true
+      skip_if_confidence: 0.90
+
+  # Stage 2: Geometric intersection calculation (stub - not yet implemented)
+  stage_2_geometric:
+    enabled: false
+    skip_rules:
+      skip_if_quality: ["EXCELLENT", "GOOD"]
+      skip_if_locked: true
+
+  # Stage 3: Proximity-based geocoding (with pipeline boost)
+  stage_3_proximity:
+    enabled: true
+    skip_rules:
+      skip_if_quality: ["EXCELLENT", "GOOD"]
+      skip_if_locked: true
+    road_network_path: "roads_merged.gpkg"
+    max_distance_km: 50
+
+    # NEW: Pipeline proximity boost
+    pipeline_layers:
+      enabled: true
+      shapefiles:
+        - "${project_root}/utilities/pipeline/Pipeline Layers/Wink 01.zip"
+        - "${project_root}/utilities/pipeline/Pipeline Layers/Wink 02.zip"
+        - "${project_root}/utilities/pipeline/Pipeline Layers/Wink 03.zip"
+      boost_thresholds:
+        10: 0.15    # ≤10m: +15% confidence boost
+        25: 0.10    # ≤25m: +10% boost
+        50: 0.05    # ≤50m: +5% boost
+        100: 0.02   # ≤100m: +2% boost
+      validation_distance_m: 500
+
+  # Stage 4: Fallback geocoding (stub - not yet implemented)
+  stage_4_fallback:
+    enabled: false
+    skip_rules:
+      skip_if_quality: ["EXCELLENT", "GOOD", "ACCEPTABLE"]
+      skip_if_locked: true
+
+  # Stage 5: Validation
+  stage_5_validation:
+    enabled: true
+    skip_rules:
+      skip_if_locked: true
+    validation_rules:
+      - low_confidence
+      - emergency_low_confidence
+      - city_distance
+      - fallback_geocode
+      - missing_road
+      - pipeline_mismatch  # NEW
+      - out_of_corridor    # NEW
+
+    # NEW: Route corridor validation
+    route_corridor:
+      enabled: true
+      kmz_path: "${project_root}/route/wink.kmz"
+      buffer_distance_m: 500
+      severity: WARNING
+
+  # Stage 6: Enrichment (NEW STAGE)
+  stage_6_enrichment:
+    enabled: true
+    skip_rules:
+      skip_if_locked: true
+
+    # Jurisdiction enrichment
+    jurisdiction:
+      enabled: true
+      geojson_path: "${project_root}/permitting/Wink APN - Jurisdictions and Permitting.geojson"
+      cache_spatial_index: true
+      attributes:
+        - authority_name
+        - jurisdiction_type
+        - permit_required

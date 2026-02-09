@@ -16,6 +16,7 @@ from cache.cache_manager import CacheManager
 from config_manager import ConfigManager
 from stages.stage_3_proximity import Stage3ProximityGeocoder
 from stages.stage_5_validation import Stage5Validation
+from stages.stage_6_enrichment import Stage6Enrichment
 
 
 def main():
@@ -88,6 +89,11 @@ Examples:
         '--skip-stage5',
         action='store_true',
         help='Skip validation stage (Stage 5)'
+    )
+    parser.add_argument(
+        '--skip-stage6',
+        action='store_true',
+        help='Skip enrichment stage (Stage 6)'
     )
     parser.add_argument(
         '--force-reprocess',
@@ -268,6 +274,15 @@ Examples:
         pipeline.add_stage(stage5)
         if not args.quiet:
             print("✅ Added Stage 5: Validation")
+
+    if not args.skip_stage6 and args.config:
+        # Stage 6 requires config file with jurisdiction settings
+        if 'stages' in pipeline_config and 'stage_6_enrichment' in pipeline_config['stages']:
+            stage6_config = pipeline_config['stages']['stage_6_enrichment']
+            stage6 = Stage6Enrichment(cache_manager, stage6_config)
+            pipeline.add_stage(stage6)
+            if not args.quiet:
+                print("✅ Added Stage 6: Enrichment")
 
     # Run pipeline
     if not args.quiet:

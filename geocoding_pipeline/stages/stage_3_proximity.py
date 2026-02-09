@@ -20,6 +20,12 @@ from stages.base_stage import BaseStage
 from cache.cache_manager import CacheManager
 from cache.models import GeocodeRecord, QualityTier, ReviewPriority
 
+# Import pipeline proximity analyzer
+try:
+    from utils.pipeline_proximity import PipelineProximityAnalyzer
+except ImportError:
+    PipelineProximityAnalyzer = None
+
 
 class Stage3ProximityGeocoder(BaseStage):
     """Stage 3: Proximity-based geocoding using road network analysis."""
@@ -52,6 +58,28 @@ class Stage3ProximityGeocoder(BaseStage):
 
         # Initialize proximity geocoder
         self.geocoder = ProximityGeocoder(str(road_network_path))
+
+        # Initialize pipeline proximity analyzer (optional)
+        self.pipeline_analyzer = None
+        pipeline_config = config.get("pipeline_layers", {})
+
+        if pipeline_config.get("enabled", False) and PipelineProximityAnalyzer is not None:
+            shapefile_paths = pipeline_config.get("shapefiles", [])
+            if shapefile_paths:
+                shapefile_paths = [Path(p) for p in shapefile_paths]
+                boost_thresholds = pipeline_config.get("boost_thresholds")
+                validation_distance = pipeline_config.get("validation_distance_m", 500.0)
+
+                try:
+                    self.pipeline_analyzer = PipelineProximityAnalyzer(
+                        shapefile_paths=shapefile_paths,
+                        boost_thresholds=boost_thresholds,
+                        validation_distance_m=validation_distance,
+                    )
+                    print(f"✓ Initialized PipelineProximityAnalyzer with {len(shapefile_paths)} shapefiles")
+                except Exception as e:
+                    print(f"⚠ Warning: Failed to initialize pipeline analyzer: {e}")
+                    self.pipeline_analyzer = None
 
         print(f"✓ Initialized Stage3ProximityGeocoder with {road_network_path}")
 
@@ -94,6 +122,31 @@ class Stage3ProximityGeocoder(BaseStage):
 
         # Convert ProximityResult to GeocodeRecord
         if result.success:
+            # Apply pipeline proximity boost if available
+            base_confidence = result.confidence
+            pipeline_metadata = {}
+
+            if self.pipeline_analyzer is not None:
+                boost, pipeline_metadata = self.pipeline_analyzer.calculate_proximity_boost(
+                    result.lat, result.lng
+                )
+
+                # Apply boost (capped at 1.0)
+                boosted_confidence = min(1.0, base_confidence + boost)
+
+                # Update reasoning if boost was applied
+                if boost > 0:
+                    boost_pct = boost * 100
+                    distance_m = pipeline_metadata.get("pipeline_proximity_m", 0)
+                    original_reasoning = result.reasoning or ""
+                    result.reasoning = (
+                        f"{original_reasoning} "
+                        f"[Pipeline proximity boost: +{boost_pct:.1f}% "
+                        f"(distance: {distance_m:.1f}m)]"
+                    ).strip()
+
+                result.confidence = boosted_confidence
+
             # Successful geocoding
             geocode_record = GeocodeRecord(
                 ticket_number=ticket_number,
@@ -113,6 +166,7 @@ class Stage3ProximityGeocoder(BaseStage):
                 ticket_type=ticket_type,
                 duration=duration,
                 work_type=work_type,
+                metadata=pipeline_metadata,  # Store pipeline proximity metadata
                 # Quality tier will be calculated by _assess_quality()
                 quality_tier=QualityTier.GOOD,  # Default, will be reassessed
                 review_priority=ReviewPriority.NONE,  # Default, will be reassessed

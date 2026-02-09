@@ -1,0 +1,47 @@
+# Minimal Legacy Configuration
+# Backward compatible with Phase 1 - no new features enabled
+
+name: "legacy_pipeline"
+config_version: 1
+
+cache:
+  db_path: "geocoding_cache.db"
+
+output_dir: "outputs"
+
+fail_fast: false
+save_intermediate: true
+
+stages:
+  # Stage 1: API-based geocoding (stub)
+  stage_1_api:
+    enabled: false
+
+  # Stage 2: Geometric intersection (stub)
+  stage_2_geometric:
+    enabled: false
+
+  # Stage 3: Proximity-based geocoding (basic - no pipeline boost)
+  stage_3_proximity:
+    enabled: true
+    skip_rules:
+      skip_if_quality: ["EXCELLENT", "GOOD"]
+      skip_if_locked: true
+    road_network_path: "roads_merged.gpkg"
+    max_distance_km: 50
+
+  # Stage 4: Fallback geocoding (stub)
+  stage_4_fallback:
+    enabled: false
+
+  # Stage 5: Validation (basic rules only)
+  stage_5_validation:
+    enabled: true
+    skip_rules:
+      skip_if_locked: true
+    validation_rules:
+      - low_confidence
+      - emergency_low_confidence
+      - city_distance
+      - fallback_geocode
+      - missing_road

@@ -22,6 +22,7 @@ from pipeline import Pipeline
 from cache.cache_manager import CacheManager
 from stages.stage_3_proximity import Stage3ProximityGeocoder
 from stages.stage_5_validation import Stage5Validation
+from stages.stage_6_enrichment import Stage6Enrichment
 
 def main():
     print("="*80)
@@ -116,6 +117,11 @@ def main():
     stage5 = Stage5Validation(cache_manager, stage5_config)
     pipeline.add_stage(stage5)
     print("   ✅ Added Stage 5: Validation")
+
+    # Add Stage 6: Enrichment (optional - only if config available)
+    # Note: Stage 6 requires jurisdiction data, so it's typically configured via config file
+    # For basic usage without enrichment, this stage can be skipped
+    # Example config would go here if needed
     print()
 
     # Run pipeline

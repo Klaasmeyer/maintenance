@@ -5,10 +5,11 @@ analyze_ticket_geocoding.py
 Analyze the actual 811 ticket dataset to understand geocoding success/failure
 patterns. This examines tickets that haven't been geocoded yet or failed.
 
-Input: projects/wink/wink-intersection.csv (or similar)
+Input: projects/{project}/tickets/*.csv (or similar)
 Output: Comprehensive failure analysis report
 """
 
+import argparse
 import json
 import logging
 from collections import Counter
@@ -16,7 +17,16 @@ from pathlib import Path
 
 import pandas as pd
 
-INPUT_FILE = Path("projects/wink/wink-intersection.csv")
+# Import project path utilities
+try:
+    from geocoding_pipeline.utils.project_paths import resolve_project_file
+except ImportError:
+    # Fallback if utils not available
+    def resolve_project_file(project_name, resource_type, filename, base_dir=Path("projects")):
+        return base_dir / project_name / resource_type / filename
+
+# Default paths (can be overridden by CLI args)
+INPUT_FILE = Path("projects/wink/tickets/wink-intersection.csv")
 OUTPUT_REPORT = Path("ticket_analysis_report.json")
 OUTPUT_CSV = Path("ticket_failures.csv")
 
@@ -275,13 +285,60 @@ def print_report(analysis: dict) -> None:
 
 
 def main() -> None:
-    if not INPUT_FILE.exists():
-        logging.error(f"Input file not found: {INPUT_FILE}")
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Analyze 811 ticket geocoding success/failure patterns"
+    )
+    parser.add_argument(
+        "--project",
+        type=str,
+        help="Project name (e.g., 'wink', 'floydada'). Will auto-resolve to projects/{project}/tickets/",
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input CSV file path (overrides --project)",
+    )
+    parser.add_argument(
+        "--output-report",
+        type=Path,
+        default=OUTPUT_REPORT,
+        help=f"Output JSON report path (default: {OUTPUT_REPORT})",
+    )
+    parser.add_argument(
+        "--output-csv",
+        type=Path,
+        default=OUTPUT_CSV,
+        help=f"Output failures CSV path (default: {OUTPUT_CSV})",
+    )
+
+    args = parser.parse_args()
+
+    # Determine input file
+    if args.input:
+        input_file = args.input
+    elif args.project:
+        # Auto-resolve project path - look for CSV files in tickets directory
+        from glob import glob
+        project_tickets_dir = Path("projects") / args.project / "tickets"
+        csv_files = list(project_tickets_dir.glob("*.csv"))
+        if not csv_files:
+            logging.error(f"No CSV files found in {project_tickets_dir}")
+            return
+        if len(csv_files) > 1:
+            logging.warning(f"Multiple CSV files found, using first: {csv_files[0]}")
+        input_file = csv_files[0]
+    else:
+        input_file = INPUT_FILE
+
+    if not input_file.exists():
+        logging.error(f"Input file not found: {input_file}")
         logging.info("Please ensure the ticket dataset is at the expected location.")
+        logging.info("Use --project <name> or --input <path> to specify input file.")
         return
 
-    logging.info(f"Loading tickets from {INPUT_FILE}")
-    df = pd.read_csv(INPUT_FILE, low_memory=False)
+    logging.info(f"Loading tickets from {input_file}")
+    df = pd.read_csv(input_file, low_memory=False)
 
     logging.info(f"Analyzing {len(df):,} tickets...")
     analysis = analyze_tickets(df)
@@ -306,9 +363,10 @@ def main() -> None:
         "successes": analysis["successes"],
     }
 
-    with OUTPUT_REPORT.open("w", encoding="utf-8") as f:
+    output_report = args.output_report
+    with output_report.open("w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
-    logging.info(f"Saved detailed report to {OUTPUT_REPORT}")
+    logging.info(f"Saved detailed report to {output_report}")
 
     # Export failure records to CSV for further analysis
     if analysis["summary"]["failed"] > 0:
@@ -326,8 +384,9 @@ def main() -> None:
             key_cols.append("_geo_key")
 
         export_cols = [col for col in key_cols if col in failures_df.columns]
-        failures_df[export_cols].to_csv(OUTPUT_CSV, index=False)
-        logging.info(f"Saved {len(failures_df):,} failure records to {OUTPUT_CSV}")
+        output_csv = args.output_csv
+        failures_df[export_cols].to_csv(output_csv, index=False)
+        logging.info(f"Saved {len(failures_df):,} failure records to {output_csv}")
 
 
 if __name__ == "__main__":

@@ -17,6 +17,12 @@ from stages.base_stage import BaseStage
 from cache.cache_manager import CacheManager
 from cache.models import GeocodeRecord, QualityTier, ReviewPriority
 
+# Import route corridor validator
+try:
+    from utils.route_corridor import RouteCorridorValidator
+except ImportError:
+    RouteCorridorValidator = None
+
 
 class Stage5Validation(BaseStage):
     """Stage 5: Validation and quality reassessment for geocoded tickets."""
@@ -46,6 +52,25 @@ class Stage5Validation(BaseStage):
             "fallback_geocode",
             "missing_road",
         ])
+
+        # Initialize route corridor validator (optional)
+        self.route_corridor_validator = None
+        corridor_config = config.get("route_corridor", {})
+
+        if corridor_config.get("enabled", False) and RouteCorridorValidator is not None:
+            kmz_path = corridor_config.get("kmz_path")
+            if kmz_path:
+                buffer_distance = corridor_config.get("buffer_distance_m", 500.0)
+
+                try:
+                    self.route_corridor_validator = RouteCorridorValidator(
+                        kmz_path=Path(kmz_path),
+                        buffer_distance_m=buffer_distance,
+                    )
+                    print(f"✓ Initialized RouteCorridorValidator with {kmz_path}")
+                except Exception as e:
+                    print(f"⚠ Warning: Failed to initialize corridor validator: {e}")
+                    self.route_corridor_validator = None
 
         print(f"✓ Initialized Stage5Validation with {len(self.enabled_rules)} rules")
 
@@ -82,6 +107,20 @@ class Stage5Validation(BaseStage):
         if cached_record.locked:
             return cached_record
 
+        # Check route corridor if enabled
+        corridor_metadata = {}
+        if self.route_corridor_validator is not None and cached_record.latitude:
+            is_within, corridor_metadata = self.route_corridor_validator.check_containment(
+                cached_record.latitude,
+                cached_record.longitude
+            )
+
+        # Merge metadata (preserve existing, add corridor)
+        updated_metadata = {
+            **(cached_record.metadata or {}),  # Preserve existing metadata
+            **corridor_metadata,                 # Add corridor metadata
+        }
+
         # Re-run quality assessment with current validation engine
         # The _assess_quality method in BaseStage will recalculate everything
         # We just need to return the record and let the parent handle it
@@ -104,6 +143,7 @@ class Stage5Validation(BaseStage):
             duration=cached_record.duration,
             work_type=cached_record.work_type,
             excavator=cached_record.excavator,
+            metadata=updated_metadata,  # Include corridor metadata
             # Quality fields will be recalculated by _assess_quality
             quality_tier=cached_record.quality_tier,
             review_priority=cached_record.review_priority,

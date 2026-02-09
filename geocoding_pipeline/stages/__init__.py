@@ -20,6 +20,7 @@ from .stage_2_geometric import Stage2GeometricIntersection
 from .stage_3_proximity import Stage3ProximityGeocoder
 from .stage_4_fallback import Stage4Fallback
 from .stage_5_validation import Stage5Validation
+from .stage_6_enrichment import Stage6Enrichment
 
 __all__ = [
     "BaseStage",
@@ -30,4 +31,5 @@ __all__ = [
     "Stage3ProximityGeocoder",
     "Stage4Fallback",
     "Stage5Validation",
+    "Stage6Enrichment",
 ]
