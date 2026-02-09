@@ -8,6 +8,7 @@
 
 # Output
 output/
+outputs/
 
 # Local env
 .env
@@ -74,3 +75,10 @@ Thumbs.db
 *.gpkg-wal
 *_report.json
 *_failures.csv
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# Temporary test files
+/test_*.py
