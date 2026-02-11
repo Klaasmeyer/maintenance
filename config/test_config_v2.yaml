@@ -1,0 +1,18 @@
+name: "wink_project_test"
+config_version: 2
+project_root: "projects/wink"
+
+cache:
+  db_path: "${project_root}/cache/geocoding_cache.db"
+
+output_dir: "${project_root}/outputs"
+
+stages:
+  stage_3_proximity:
+    enabled: true
+    road_network_path: "${project_root}/utilities/roads.gpkg"
+    pipeline_layers:
+      enabled: true
+      shapefiles:
+        - "${project_root}/utilities/pipeline/Pipeline Layers/Wink 01.zip"
+        - "${project_root}/utilities/pipeline/Pipeline Layers/Wink 02.zip"

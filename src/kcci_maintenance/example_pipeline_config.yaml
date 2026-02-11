@@ -1,0 +1,44 @@
+name: geocoding_pipeline
+cache:
+  db_path: ${HOME}/geocoding_cache.db
+output_dir: outputs
+fail_fast: false
+save_intermediate: true
+stages:
+  stage_1_api:
+    enabled: true
+    skip_rules:
+      skip_if_quality:
+      - EXCELLENT
+      skip_if_locked: true
+      skip_if_confidence: 0.9
+    api_key: ${GEOCODING_API_KEY}
+    api_url: https://api.geocoding.com/v1/geocode
+    timeout: 5
+  stage_3_proximity:
+    enabled: true
+    skip_rules:
+      skip_if_quality:
+      - EXCELLENT
+      - GOOD
+      skip_if_locked: true
+    road_network_path: roads_merged.gpkg
+    max_distance_km: 50
+  stage_4_geometric:
+    enabled: true
+    skip_rules:
+      skip_if_quality:
+      - EXCELLENT
+      - GOOD
+      skip_if_locked: true
+    road_network_path: roads_merged.gpkg
+  stage_5_validation:
+    enabled: true
+    skip_rules:
+      skip_if_locked: true
+    validation_rules:
+    - low_confidence
+    - emergency_low_confidence
+    - city_distance
+    - fallback_geocode
+    - missing_road

@@ -1,0 +1,32 @@
+Attachments,Number,Ticket Type,Creation,WorkOn,Excavator,County,City,Address,Street,Intersection,ExcavatorPhone,TakenBy,Work Done For,Nature of Work,Duration
+0,2368177062,Normal,2023-06-30T01:40:16-05:00,2023-07-05T01:45:00-05:00,"DCS, Inc",BRISCOE,SILVERTON,,Arroyo Dr,Catco Dr,4323524864,Texas811,Mid Plains Coop,Bury-Fiber Optic Cable,5 days
+0,2368177046,Normal,2023-06-30T01:36:11-05:00,2023-07-05T01:45:00-05:00,"DCS, Inc",BRISCOE,SILVERTON,,Catco Dr,W Lobo Dr,4323524864,Texas811,Mid Plains Coop,Bury-Fiber Optic Cable,5 days
+0,2368177039,Normal,2023-06-30T01:34:19-05:00,2023-07-05T01:45:00-05:00,"DCS, Inc",BRISCOE,SILVERTON,,W Lobo Dr,Llano Estacado,4323524864,rgraves@grandecom.net,Mid Plains Coop,Bury-Fiber Optic Cable,5 days
+0,2367948378,Emergency,2023-06-28T04:24:48-05:00,2023-06-28T04:30:00-05:00,"Swisher Electric Coop, Inc.",BRISCOE,SILVERTON,,CR H,FM 284,8069953567,astewart@swisherec.org,Mark Patton,Emer Repair-Electric Service Line,2 days
+0,2367947832,Emergency,2023-06-28T04:02:38-05:00,2023-06-28T04:15:00-05:00,"Swisher Electric Coop, Inc.",BRISCOE,SILVERTON,,FM 378,CR J,8069953567,astewart@swisherec.org,Gary Weaks,Emer Repair-Electric Service Line,2 days
+0,2367840374,Normal,2023-06-27T10:33:11-05:00,2023-06-29T10:45:00-05:00,Lighthouse Electric Coop.,BRISCOE,SILVERTON,,FM 207,CR B,8069832814,adrianm@lighthouse.coop,Rance Young,Power Line Construction,30 Days
+0,2367715229,Normal,2023-06-26T05:59:01-05:00,2023-06-28T06:00:00-05:00,Adobe Walls Cattle Co.,BRISCOE,LAKEVIEW,,CR 1,TX-256,8062368607,Texas811,High Lonesome CC,Other: See Additional Information,10 Days
+0,2367379813,Emergency,2023-06-22T05:26:06-05:00,2023-06-22T05:30:00-05:00,"Swisher Electric Coop, Inc.",BRISCOE,SILVERTON,,CR J,TX 207,8069953567,astewart@swisherec.org,Larry Comer,Emergency-Electric Repair,1 day
+0,2367267455,Emergency,2023-06-21T08:47:04-05:00,2023-06-21T08:45:00-05:00,"LIGHTHOUSE ELECTRIC COOP., INC.",BRISCOE,SILVERTON,0,CR 21,FM 145,8069832814,johnnyg@lighthouse.coop,LIGHTHOUSE,Emergency-Electric Repair,14 DAYS
+0,2367142039,Emergency,2023-06-20T04:15:10-05:00,2023-06-20T04:15:00-05:00,Silverton ,BRISCOE,SILVERTON,,7th St,Grady St,8068477022,publicworksdirectorsilverton@yahoo.com,City of Silverton,Emer Repair-Main Water Line,6h
+0,2367037419,Normal,2023-06-19T13:56:39-05:00,2023-06-21T19:00:00-05:00,"DCS, Inc",BRISCOE,SILVERTON,,LOBO DR,LLANO ESTACADO RD ,4323524864,Texas811,Mid Plains Coop,Bury-Fiber Optic Cable,1 week
+0,2367037411,Normal,2023-06-19T13:54:44-05:00,2023-06-21T19:00:00-05:00,"DCS, Inc",BRISCOE,SILVERTON,,Llano Estacado Dr,Los Lingos Dr.,4323524864,rgraves@grandecom.net,Mid Plains Coop,Bury-Fiber Optic Cable,1 week
+0,2367037379,Normal,2023-06-19T13:43:09-05:00,2023-06-21T19:00:00-05:00,"DCS, Inc",BRISCOE,SILVERTON,,E Los Lingos Dr,Llano Estacado Rd,4323524864,rgraves@grandecom.net,Mid Plains Coop,Bury-Fiber Optic Cable,1 week
+0,2366714979,Normal,2023-06-16T10:52:13-05:00,2023-06-21T10:45:00-05:00,TOMMY BURSON ,BRISCOE,SILVERTON,,HWY 256,CR 27,8068477108,Texas811,TOMMY BURSON ,Land CLEARING ,1 YEAR 
+0,2366709187,Normal,2023-06-16T05:52:12-05:00,2023-06-21T05:45:00-05:00,HORIZON BUILDERS,BRISCOE,SILVERTON,1253,CR 13,HWY 86,8062411816,Texas811,ROSS ESTES ,DRILLING PIERS ,3 WEEKS
+0,2366693862,Normal,2023-06-15T05:53:57-05:00,2023-06-20T05:45:00-05:00,LEWIS DE LA SANTOS ,BRISCOE,QUITAQUE,400,E MAIN ST,4TH ST ,8064551174,Texas811,LEWIS DE LA SANTOS ,BUILDING CORRAL,3 DAYS 
+0,2366583930,Normal,2023-06-14T11:34:37-05:00,2023-06-16T11:45:00-05:00,Silverton ,BRISCOE,SILVERTON,,Parks St,Lone Star St,8068477022,publicworksdirectorsilverton@yahoo.com,City of Silverton,Repair-Water Leak,6 Hours
+0,2366466725,Normal,2023-06-13T12:06:45-05:00,2023-06-15T12:00:00-05:00,"SOUTH PLAINS IRRIGATION, INC.",BRISCOE,SILVERTON,,CR A,FM 378,8062853139,kylespii@icloud.com,Clear Horizon Farm Partnership ,Remove-Electrical Service,5 hours
+0,2366462075,Normal,2023-06-13T08:21:24-05:00,2023-06-15T08:30:00-05:00,Lighthouse Electric Coop.,BRISCOE,QUITAQUE,,CR LL,CR 30,8069832814,adrianm@lighthouse.coop,Dusty Hill,Bury-All Utility Services,30 Days
+0,2366460321,Normal,2023-06-13T07:06:48-05:00,2023-06-15T07:15:00-05:00,TXDOT,BRISCOE,SILVERTON,,HWY 207,HWY 86 ,9409377242,eden.gonzalez@txdot.gov,TXDOT,Road/Street-Construction,1 YEAR
+0,2365897872,Normal,2023-06-07T16:49:06-05:00,2023-06-09T17:00:00-05:00,"DCS, Inc",BRISCOE,SILVERTON,,Llano Estacado,N Mackenzie Rd,4323524864,rgraves@grandecom.net,Mid Plains Coop,Bury-Fiber Optic Cable,5  days
+0,2365897851,Normal,2023-06-07T16:45:09-05:00,2023-06-09T16:45:00-05:00,"DCS, Inc",BRISCOE,SILVERTON,,Llano Estacado,N Mackenzie Rd,4323524864,rgraves@grandecom.net,Mid Plains Coop,Bury-Fiber Optic Cable,5  days
+0,2365897831,Normal,2023-06-07T16:39:27-05:00,2023-06-09T16:45:00-05:00,"DCS, Inc",BRISCOE,SILVERTON,,Llano Estacado Rd,N Mackenzie Rd,4323524864,rgraves@grandecom.net,Mid Plains Coop,Bury-Fiber Optic Cable,5 5 days
+0,2365897142,Update,2023-06-07T13:28:07-05:00,2023-06-09T13:30:07-05:00,"DCS, Inc",BRISCOE,SILVERTON,,LLano Estacado RD,N Mackenzie Rd,4323524864,rgraves@grandecom.net,Mid Plains Rural Coop,Bury-Fiber Optic Cable,2 weeks
+0,2365895590,Normal,2023-06-07T10:54:19-05:00,2023-06-09T11:00:00-05:00,JA Cattle Co,BRISCOE,CLARENDON,3607,CR 21,COUNTY RD X,8063764147,Texas811,JA CATTLE CO,Fence-Replacing,30 DAYS
+0,2365658678,Emergency,2023-06-05T10:59:47-05:00,2023-06-05T11:00:00-05:00,Atmos Energy,BRISCOE,SILVERTON,907,Lone Star st,Briscoe st,8063638007,robert.rodriguez@atmosenergy.com,ATMOS ENERGY,Emer GAS RISER ,24 HRS
+0,2365654478,Normal,2023-06-05T08:40:06-05:00,2023-06-07T08:45:00-05:00,Xcel Energy,BRISCOE,SILVERTON,,County Road L,Garrison Rd,5753095456,logan.s.garner@xcelenergy.com,Xcel Energy,Setting-Poles,8 hours
+0,2365646619,Normal,2023-06-05T04:25:19-05:00,2023-06-07T04:30:00-05:00,JUAN ACEVEDO,BRISCOE,SILVERTON,706,STALLBIRD ST,8TH ST,8069947816,Texas811,JUAN ACEVEDO,Fence-Replacing/REPAIR FENCE,2 WEEKS
+0,2365337197,Normal,2023-06-02T11:20:39-05:00,2023-06-06T11:30:00-05:00,Daniel Jenkins Johnson Gin,BRISCOE,SILVERTON,810,CARTER ST,Carter,8068232224,Texas811,Self,digging a trench for underground electric line,3 weeks
+0,2365217497,Update,2023-06-01T08:21:26-05:00,2023-06-05T08:30:26-05:00,Mid-Plains Telephone Coop,BRISCOE,SILVERTON,9427,CR H,FM 378,8066684420,Texas811,Midplains,Bury-Fiber Optic Cable,1 Day
+0,2365217185,Normal,2023-06-01T08:09:35-05:00,2023-06-05T08:15:00-05:00,Cornerstone Synergy,BRISCOE,SILVERTON,,TX-86,CR 21,8062790999,Texas811,Oneok,Hydro-excavation,2 Weeks

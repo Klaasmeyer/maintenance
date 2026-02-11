@@ -1,0 +1,68 @@
+[project]
+name = "geocoding-pipeline"
+version = "1.0.0"
+description = "Intelligent geocoding pipeline with caching and quality assessment"
+authors = [{name = "Corey Klaasmeyer"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.0.0",
+    "geopandas>=0.14.0",
+    "shapely>=2.0.0",
+    "pyyaml>=6.0",
+    "pydantic>=2.0.0",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.7.0",
+    "ruff>=0.0.285",
+    "mypy>=1.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cache", "core", "stages", "utils"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--cov=geocoding_pipeline",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "N",  # pep8-naming
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

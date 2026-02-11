@@ -1,12 +1,12 @@
 [project]
-name = "starter"
-version = "0.1.0"
-description = "Claude Code Python starter template"
+name = "kcci-maintenance"
+version = "1.0.0"
+description = "KCCI Maintenance Ticket Geocoding and Cost Estimation Pipeline"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Your Name", email = "you@example.com" }]
-keywords = ["starter", "template"]
+authors = [{ name = "KCCI Team", email = "info@klaasmeyer.com" }]
+keywords = ["geocoding", "maintenance", "811", "pipeline", "cost-estimation"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -43,14 +43,14 @@ postal = [
 ]
 
 [project.scripts]
-starter = "starter.__main__:main"
+kcci-pipeline = "kcci_maintenance.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/starter"]
+packages = ["src/kcci_maintenance"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -101,7 +101,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["starter"]
+known-first-party = ["kcci_maintenance"]
 
 [tool.coverage.run]
 source = ["src"]

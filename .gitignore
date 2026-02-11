@@ -82,3 +82,22 @@ Thumbs.db
 
 # Temporary test files
 /test_*.py
+
+# AI workspace (development artifacts)
+.ai-workspace/*/test-outputs/
+.ai-workspace/*/intermediate-results/
+
+# Data files (large binaries - already covered by *.gpkg above, but being explicit)
+data/roads/*.gpkg
+data/cache/geocode_cache.json
+
+# Project outputs (keep archives, ignore latest symlinks and loose files)
+projects/*/outputs/latest/
+projects/*/outputs/*.csv
+projects/*/outputs/*.xlsx
+# Keep archive structure
+!projects/*/outputs/archive/
+
+# Large utility files (>100MB)
+projects/*/utilities/**/*.zip
+projects/*/utilities/**/*.gpkg
