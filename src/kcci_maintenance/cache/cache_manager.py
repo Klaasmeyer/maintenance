@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 
-from cache.models import GeocodeRecord, CacheQuery, QualityTier, ReviewPriority
-from cache.migrations import apply_schema
+from kcci_maintenance.cache.models import GeocodeRecord, CacheQuery, QualityTier, ReviewPriority
+from kcci_maintenance.cache.migrations import apply_schema
 
 
 class CacheManager:

@@ -10,6 +10,16 @@ cache:
 
 output_dir: "${project_root}/outputs"
 
+# Route configuration for estimates
+route:
+  kmz_path: "${project_root}/route/wink.kmz"
+  buffer_distance_m: 500
+
+# Estimate output settings
+estimates:
+  results_csv: "${project_root}/outputs/results.csv"
+  estimate_xlsx: "${project_root}/outputs/maintenance_estimate.xlsx"
+
 fail_fast: false
 save_intermediate: true
 

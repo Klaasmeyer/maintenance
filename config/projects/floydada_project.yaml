@@ -1,0 +1,56 @@
+# Floydada Project - Configuration
+# Project-specific paths and settings
+
+name: "Floydada - Klaasmeyer"
+config_version: 2
+project_root: "projects/floydada"
+
+cache:
+  db_path: "${project_root}/cache/geocoding_cache.db"
+
+output_dir: "${project_root}/outputs"
+
+# Route configuration for estimates
+route:
+  kmz_path: "${project_root}/route/Klaasmeyer - Floydada.kmz"
+  buffer_distance_m: 500
+
+# Estimate output settings
+estimates:
+  results_csv: "${project_root}/outputs/results.csv"
+  estimate_xlsx: "${project_root}/outputs/maintenance_estimate.xlsx"
+
+fail_fast: false
+save_intermediate: true
+
+stages:
+  stage_3_proximity:
+    enabled: true
+    skip_rules:
+      skip_if_quality: ["EXCELLENT", "GOOD"]
+      skip_if_locked: true
+    road_network_path: "roads_merged.gpkg"
+    max_distance_km: 50
+
+  stage_5_validation:
+    enabled: true
+    skip_rules:
+      skip_if_locked: true
+    validation_rules:
+      - low_confidence
+      - emergency_low_confidence
+      - city_distance
+      - fallback_geocode
+      - missing_road
+      - out_of_corridor
+
+    route_corridor:
+      enabled: true
+      kmz_path: "${project_root}/route/Klaasmeyer - Floydada.kmz"
+      buffer_distance_m: 500
+      severity: WARNING
+
+  stage_6_enrichment:
+    enabled: false
+    skip_rules:
+      skip_if_locked: true

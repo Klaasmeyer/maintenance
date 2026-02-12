@@ -310,12 +310,42 @@ class MaintenanceEstimateGenerator:
             logger.warning(f"Error calculating time span: {e} - assuming 1 year")
             return 1.0, {'years': 1.0, 'method': 'error', 'note': str(e)}
 
+    def _apply_arial_font(self, worksheet, max_row: int = None, max_col: int = None) -> None:
+        """Apply Arial font to all cells in a worksheet.
+
+        Args:
+            worksheet: Worksheet to apply font to
+            max_row: Maximum row to apply font to (default: worksheet max_row)
+            max_col: Maximum column to apply font to (default: worksheet max_column)
+        """
+        from openpyxl.styles import Font
+
+        if max_row is None:
+            max_row = worksheet.max_row
+        if max_col is None:
+            max_col = worksheet.max_column
+
+        arial_font = Font(name='Arial', size=11)
+        for row in range(1, max_row + 1):
+            for col in range(1, max_col + 1):
+                cell = worksheet.cell(row=row, column=col)
+                # Preserve bold and size attributes if they exist
+                if cell.font and (cell.font.bold or cell.font.size):
+                    cell.font = Font(
+                        name='Arial',
+                        size=cell.font.size if cell.font.size else 11,
+                        bold=cell.font.bold if cell.font.bold else False
+                    )
+                else:
+                    cell.font = arial_font
+
     def _write_quote_sheet(
         self,
         writer: pd.ExcelWriter,
         leg_details_df: pd.DataFrame,
         leg_row_mapping: dict,
         total_cost_row: int,
+        total_cost_lease_row: int,
         project_name: str = "Project",
     ) -> None:
         """Write Quote sheet with pricing summary.
@@ -323,21 +353,23 @@ class MaintenanceEstimateGenerator:
         Args:
             writer: Excel writer
             leg_details_df: DataFrame with leg details
-            leg_row_mapping: Dict mapping leg names to row numbers in Maintenance Estimate sheet
+            leg_row_mapping: Dict mapping leg names to row numbers in Leg Details sheet
             total_cost_row: Row number of Total Annual O&M Cost in Maintenance Estimate sheet
+            total_cost_lease_row: Row number of Total Cost of Lease in Maintenance Estimate sheet
             project_name: Project name for table name
         """
-        from openpyxl.worksheet.table import Table, TableStyleInfo
-        from openpyxl.styles import Font, Alignment
+        from openpyxl.styles import Font
 
         worksheet = writer.book.create_sheet('Quote', 0)  # Insert as first sheet
 
-        # Set column widths
-        worksheet.column_dimensions['A'].width = 16.57
-        worksheet.column_dimensions['B'].width = 20.57
+        # Set column widths to match reference
+        worksheet.column_dimensions['A'].width = 26.71
+        worksheet.column_dimensions['B'].width = 20.43
         worksheet.column_dimensions['C'].width = 28.14
         worksheet.column_dimensions['D'].width = 43.0
         worksheet.column_dimensions['E'].width = 34.43
+        worksheet.column_dimensions['F'].width = 14.43
+        worksheet.column_dimensions['G'].width = 8.86
 
         # Headers
         worksheet['A1'] = 'Leg'
@@ -345,9 +377,10 @@ class MaintenanceEstimateGenerator:
         worksheet['C1'] = 'Est. Distance (km)'
         worksheet['D1'] = 'Non-Recurring Charges (O&M NRC)'
         worksheet['E1'] = 'Monthly O&M Fee (MRC)'
+        worksheet['F1'] = 'Leg % of Route'
 
-        # Set row heights
-        for row in range(1, 6):
+        # Set row heights to match reference
+        for row in range(1, 7):
             worksheet.row_dimensions[row].height = 22.5
 
         # Data rows - one per route leg
@@ -358,82 +391,81 @@ class MaintenanceEstimateGenerator:
             if leg_name == 'Unassigned':
                 continue
 
-            # Get the row number from the mapping
-            maint_row = leg_row_mapping.get(leg_name)
-            if maint_row is None:
-                continue
-
             data_rows.append(row)
             worksheet[f'A{row}'] = leg_name
 
-            # Length in miles - reference from Maintenance Estimate sheet
-            worksheet[f'B{row}'] = f"='Maintenance Estimate'!C{maint_row}"
+            # Length in miles - reference from Leg Details sheet
+            worksheet[f'B{row}'] = f"='Leg Details'!B{row}"
 
             # Convert to km
             worksheet[f'C{row}'] = f'=B{row}*1.60934'
 
-            # NRC - placeholder value (will be manually updated)
-            worksheet[f'D{row}'].value = 0
+            # NRC - calculated as Inputs!B12 * Quote!F{row}
+            worksheet[f'D{row}'] = f'=Inputs!$B$12*Quote!$F{row}'
             worksheet[f'D{row}'].number_format = '"$"#,##0.00'
+
+            # MRC - calculated as (Maintenance Estimate Total / 12) * Leg % of Route
+            worksheet[f'E{row}'] = f"='Maintenance Estimate'!$D${total_cost_row}/12*Quote!$F{row}"
+            worksheet[f'E{row}'].number_format = '"$"#,##0.00'
+
+            # Leg % of Route
+            worksheet[f'F{row}'] = f'=Quote!$B{row}/$B$6'
+            worksheet[f'F{row}'].number_format = '0.00%'
 
             row += 1
 
-        # Now go back and add MRC formulas with correct total row reference
-        total_row = row
-        for data_row in data_rows:
-            # MRC - calculated as (Total Annual O&M / 12) * (Leg Length / Total Length)
-            worksheet[f'E{data_row}'] = f"='Maintenance Estimate'!$D${total_cost_row}/12*(B{data_row}/$B${total_row})"
-            worksheet[f'E{data_row}'].number_format = '"$"#,##0.00'
-
         # Total row
-        total_row = row
+        total_row = 6  # Fixed row for total
         worksheet[f'A{total_row}'] = 'Total'
-        worksheet[f'A{total_row}'].font = Font(bold=True)
+        worksheet[f'A{total_row}'].font = Font(name="Arial", bold=True)
 
-        # Create table name from project name
-        table_name = project_name.replace(' ', '_').replace('-', '_')
-
-        # Total formulas using structured table references
         worksheet[f'B{total_row}'] = f'=SUM(B2:B{total_row-1})'
-        worksheet[f'B{total_row}'].font = Font(bold=True)
+        worksheet[f'B{total_row}'].font = Font(name="Arial", bold=True)
 
         worksheet[f'C{total_row}'] = f'=SUM(C2:C{total_row-1})'
-        worksheet[f'C{total_row}'].font = Font(bold=True)
+        worksheet[f'C{total_row}'].font = Font(name="Arial", bold=True)
 
-        worksheet[f'D{total_row}'].value = '$110,000.00'  # Placeholder
-        worksheet[f'D{total_row}'].font = Font(bold=True)
+        worksheet[f'D{total_row}'] = f'=Inputs!$B$12*Quote!$F{total_row}'
+        worksheet[f'D{total_row}'].number_format = '"$"#,##0.00'
+        worksheet[f'D{total_row}'].font = Font(name="Arial", bold=True)
 
-        worksheet[f'E{total_row}'] = f'=SUM(E2:E{total_row-1})'
+        worksheet[f'E{total_row}'] = f"='Maintenance Estimate'!$D${total_cost_row}/12*Quote!$F{total_row}"
         worksheet[f'E{total_row}'].number_format = '"$"#,##0.00'
-        worksheet[f'E{total_row}'].font = Font(bold=True)
+        worksheet[f'E{total_row}'].font = Font(name="Arial", bold=True)
 
-        # Create table
-        tab = Table(displayName=table_name, ref=f'A1:E{total_row}')
-        style = TableStyleInfo(
-            name="Quote-style",  # Will fall back to TableStyleMedium2 if not available
-            showFirstColumn=False,
-            showLastColumn=False,
-            showRowStripes=True,
-            showColumnStripes=False
-        )
-        tab.tableStyleInfo = style
-        worksheet.add_table(tab)
+        worksheet[f'F{total_row}'] = f'=Quote!$B{total_row}/$B${total_row}'
+        worksheet[f'F{total_row}'].number_format = '0.00%'
+        worksheet[f'F{total_row}'].font = Font(name="Arial", bold=True)
 
         # Summary calculations below the table
-        summary_row = total_row + 2
+        summary_row = 8
 
         worksheet[f'D{summary_row}'] = 'Cost Per Foot/Month'
-        worksheet[f'E{summary_row}'] = f'=E{total_row}/B{total_row}'
+        worksheet[f'E{summary_row}'] = f'=E6/B6'
         worksheet[f'E{summary_row}'].number_format = '"$"#,##0.00'
+        worksheet[f'E{summary_row}'].font = Font(name="Arial", bold=True)
 
         worksheet[f'D{summary_row+1}'] = 'Cost Per Kilometer/Month'
-        worksheet[f'E{summary_row+1}'] = f'=E{total_row}/C{total_row}'
+        worksheet[f'E{summary_row+1}'] = f'=E6/C6'
         worksheet[f'E{summary_row+1}'].number_format = '"$"#,##0.00'
 
         worksheet[f'D{summary_row+2}'] = 'Annual Cost'
-        worksheet[f'E{summary_row+2}'] = f'=12*E{total_row}'
+        worksheet[f'E{summary_row+2}'] = f"='Maintenance Estimate'!D{total_cost_row}"
         worksheet[f'E{summary_row+2}'].number_format = '"$"#,##0.00'
-        worksheet[f'E{summary_row+2}'].font = Font(bold=True)
+        worksheet[f'E{summary_row+2}'].font = Font(name="Arial", bold=True)
+
+        worksheet[f'D{summary_row+3}'] = 'Total Cost Right of Use 20 Year Lease'
+        worksheet[f'E{summary_row+3}'] = f'=Quote!$D$6+\'Maintenance Estimate\'!D{total_cost_lease_row}'
+        worksheet[f'E{summary_row+3}'].number_format = '"$"#,##0.00'
+        worksheet[f'E{summary_row+3}'].font = Font(name="Arial", bold=True)
+
+        worksheet[f'D{summary_row+4}'] = 'TCO Percentage of Installation Cost'
+        worksheet[f'E{summary_row+4}'] = f'=E{summary_row+3}/Inputs!B10'
+        worksheet[f'E{summary_row+4}'].number_format = '0.00%'
+        worksheet[f'E{summary_row+4}'].font = Font(name='Arial', bold=True)
+
+        # Apply Arial font to all cells
+        self._apply_arial_font(worksheet, max_row=summary_row+4, max_col=7)
 
     def generate_estimate(
         self,
@@ -474,15 +506,6 @@ class MaintenanceEstimateGenerator:
             # First write Maintenance Estimate to get the row mappings
             sheet_refs = self._write_summary_sheet(writer, summary_df, leg_details_df, project_name)
 
-            # Now write Quote sheet using the references
-            self._write_quote_sheet(
-                writer,
-                leg_details_df,
-                sheet_refs['leg_row_mapping'],
-                sheet_refs['total_cost_row'],
-                project_name
-            )
-
             # Sheet 2: Inputs (centralized parameters with annualization)
             self._write_inputs_sheet(writer, leg_details_df, filter_stats)
 
@@ -499,8 +522,21 @@ class MaintenanceEstimateGenerator:
                     col_idx = list(leg_details_df.columns).index('Avg Confidence') + 1
                     ws_leg_details.cell(row=row, column=col_idx).number_format = '0.00%'
 
+            # Apply Arial font to Leg Details
+            self._apply_arial_font(ws_leg_details)
+
             # Sheet 4: Cost Projections (with formulas referencing Inputs)
             self._write_cost_projections_sheet(writer, cost_projections_df)
+
+            # Now write Quote sheet (after Leg Details is created since it references it)
+            self._write_quote_sheet(
+                writer,
+                leg_details_df,
+                sheet_refs['leg_row_mapping'],
+                sheet_refs['total_cost_row'],
+                sheet_refs['total_cost_lease_row'],
+                project_name
+            )
 
             # Sheet 5: Breakdowns
             breakdown_df.to_excel(writer, sheet_name='Ticket Breakdowns', index=False)
@@ -512,8 +548,15 @@ class MaintenanceEstimateGenerator:
                 for row in range(2, len(breakdown_df) + 2):  # Start at row 2 (after header)
                     ws_breakdowns.cell(row=row, column=col_idx).number_format = '0.0%'
 
+            # Apply Arial font to Ticket Breakdowns
+            self._apply_arial_font(ws_breakdowns)
+
             # Sheet 6: Raw Data (tickets with leg assignments)
             tickets_with_legs.to_excel(writer, sheet_name='Ticket Assignments', index=False)
+
+            # Apply Arial font to Ticket Assignments
+            ws_assignments = writer.book['Ticket Assignments']
+            self._apply_arial_font(ws_assignments)
 
         logger.info(f"Maintenance estimate saved to {output_path}")
 
@@ -731,109 +774,103 @@ class MaintenanceEstimateGenerator:
         workbook = writer.book
         worksheet = workbook.create_sheet('Inputs', 1)  # Insert as second sheet
 
-        # Row 1: Header
-        worksheet['A1'] = "MAINTENANCE ESTIMATE INPUTS"
-        worksheet['A1'].font = Font(bold=True)
+        # Row 1: Column headers
+        worksheet['A1'] = "Input Parameter"
+        worksheet['A1'].font = Font(name="Arial", bold=True)
+        worksheet['B1'] = "Value"
+        worksheet['B1'].font = Font(name="Arial", bold=True)
+        worksheet['C1'] = "Source/Notes"
+        worksheet['C1'].font = Font(name="Arial", bold=True)
+        worksheet['D1'] = "Referenced From"
+        worksheet['D1'].font = Font(name="Arial", bold=True)
+        worksheet['E1'] = "Source"
+        worksheet['E1'].font = Font(name="Arial", bold=True)
 
-        # Row 2: Column headers
-        worksheet['A2'] = "Input Parameter"
-        worksheet['A2'].font = Font(bold=True)
-        worksheet['B2'] = "Value"
-        worksheet['B2'].font = Font(bold=True)
-        worksheet['C2'] = "Source/Notes"
-        worksheet['C2'].font = Font(bold=True)
+        # Row 2: Locate Fee Per Ticket
+        worksheet['A2'] = "Locate Fee Per Ticket"
+        worksheet['B2'] = 25.00
+        worksheet['B2'].number_format = '"$"#,##0.00'
+        worksheet['C2'] = "How much does a locate cost?"
+        worksheet['D2'] = "Cost Projections"
 
-        # Get annualized values (already annualized in leg_details_df)
-        total_tickets_assigned = leg_details_df['Total Tickets'].sum()
-        years_span = filter_stats.get('years_span', 1.0) if filter_stats else 1.0
-        time_note = filter_stats.get('time_info', {}).get('note', '') if filter_stats else ''
+        # Row 3: Average Cost Per Strike Repair
+        worksheet['A3'] = "Average Cost Per Strike Repair"
+        worksheet['B3'] = 11728.00
+        worksheet['B3'].number_format = '"$"#,##0.00'
+        worksheet['C3'] = "What does it cost, on average to fix a fiber cut?"
+        worksheet['D3'] = "Cost Projections"
 
-        # Note: total_tickets_assigned is already annualized from _generate_leg_details
-        annual_tickets_assigned = round(total_tickets_assigned)
+        # Row 4: Probability of Damage
+        worksheet['A4'] = "Probability of Damage"
+        worksheet['B4'] = 0.0056
+        worksheet['B4'].number_format = '0.00%'
+        worksheet['C4'] = "What is the average number of tickets that result in damage?"
+        worksheet['D4'] = "Cost Projections"
 
-        avg_tickets_per_mile = annual_tickets_assigned / leg_details_df['Leg Length (mi)'].apply(
-            lambda x: float(x) if isinstance(x, (int, float)) else 0
-        ).sum()
+        # Row 5: Probability of Damage Telcom
+        worksheet['A5'] = "Probability of Damage Telcom"
+        worksheet['B5'] = 0.47
+        worksheet['B5'].number_format = '0%'
+        worksheet['C5'] = "What portion of tickets that result in damage are damager to"
+        worksheet['D5'] = "Cost Projections"
 
-        # Row 3: Total Route Length (calculated from Maintenance Estimate sheet)
-        worksheet['A3'] = "Total Route Length (Miles)"
-        # Use dynamic row references from _write_summary_sheet
-        if hasattr(self, '_leg_start_row') and hasattr(self, '_leg_end_row'):
-            worksheet['B3'] = f"=SUM('Maintenance Estimate'!C{self._leg_start_row}:C{self._leg_end_row})"
-        else:
-            worksheet['B3'] = "=SUM('Maintenance Estimate'!C13:C16)"  # Fallback
-        worksheet['C3'] = "Calculated from KMZ route legs"
+        # Row 6: Expected Probability of Damage (formula)
+        worksheet['A6'] = "Expected Probability of Damage"
+        worksheet['B6'] = '=B4*B5'
+        worksheet['B6'].number_format = '0.00%'
+        worksheet['C6'] = "Probability given the two statistics above"
+        worksheet['D6'] = "Cost Projections"
 
-        # Row 4: Total Annual Tickets (excavation only, annualized)
-        worksheet['A4'] = "Total Annual Tickets"
-        worksheet['B4'] = annual_tickets_assigned
-        note_text = f"Annualized excavation tickets assigned to route"
-        if time_note:
-            note_text += f" (data: {time_note})"
-        worksheet['C4'] = note_text
+        # Row 7: Margin
+        worksheet['A7'] = "Margin"
+        worksheet['B7'] = 0.01  # 1%
+        worksheet['B7'].number_format = '0.00%'
+        worksheet['C7'] = "What margin do I want to build into estimages?"
+        worksheet['D7'] = "Maintenance Estimate"
 
-        # Row 5: Average Tickets/Mile
-        worksheet['A5'] = "Average (Tickets/Mile/Year)"
-        worksheet['B5'] = round(avg_tickets_per_mile, 2)
-        worksheet['C5'] = "Calculated average across all legs"
+        # Row 8: Buffer Distance
+        worksheet['A8'] = "Buffer Distance (Meters)"
+        worksheet['B8'] = self.buffer_distance_m
+        worksheet['C8'] = "Within what distance should we include tickets?"
+        worksheet['E8'] = "Geocoding pipeline configuration"
 
-        # Row 6: Buffer Distance
-        worksheet['A6'] = "Buffer Distance (Meters)"
-        worksheet['B6'] = self.buffer_distance_m
-        worksheet['C6'] = "Ticket assignment threshold"
+        # Row 9: Insurance Rate
+        worksheet['A9'] = "Insurance Rate"
+        worksheet['B9'] = 0.0035
+        worksheet['C9'] = "What does the Property and Business Insurance cost per insta"
+        worksheet['D9'] = "Maintenance Estimate"
 
-        # Row 7: Blank
+        # Row 10: Build Cost
+        worksheet['A10'] = "Build Cost"
+        worksheet['B10'] = 3500000
+        worksheet['B10'].number_format = '"$"#,##0.00_);[Red]("$"#,##0.00)'
+        worksheet['C10'] = "How much did we charge the client to build the plant?"
+        worksheet['E10'] = "Build cost estimate"
 
-        # Row 8: Locate Fee Per Ticket
-        worksheet['A8'] = "Locate Fee Per Ticket"
-        worksheet['B8'] = 25.00
-        worksheet['B8'].number_format = '"$"#,##0.00'
-
-        # Row 9: Average Cost Per Strike Repair
-        worksheet['A9'] = "Average Cost Per Strike Repair"
-        worksheet['B9'] = 11728.00
-        worksheet['B9'].number_format = '"$"#,##0.00'
-
-        # Row 10: Probability of Damage
-        worksheet['A10'] = "Probability of Damage"
-        worksheet['B10'] = 0.0056
-        worksheet['B10'].number_format = '0.00%'
-        worksheet['C10'] = "This is a national average per ticket"
-
-        # Row 11: Probability of Damage Telcom
-        worksheet['A11'] = "Probability of Damage Telcom"
-        worksheet['B11'] = 0.47
+        # Row 11: Per Mile Up-front Payment (Percentage)
+        worksheet['A11'] = "Per Mile Up-front Payment (Percentage)"
+        worksheet['B11'] = 0.05  # 5%
         worksheet['B11'].number_format = '0%'
-        worksheet['C11'] = "Of those that result in damage, half are telecom strikes"
+        worksheet['C11'] = "What percentage of the build cost should we ask for up front"
+        worksheet['D11'] = "Up-Front Payment (B12)"
+        worksheet['E11'] = "Industry is 5%-15%"
 
-        # Row 12: Expected Probability of Damage (formula)
-        worksheet['A12'] = "Expected Probability of Damage"
+        # Row 12: Up-Front Payment
+        worksheet['A12'] = "Up-Front Payment"
         worksheet['B12'] = '=B10*B11'
-        worksheet['B12'].number_format = '0.00%'
-        worksheet['C12'] = "Probability given the two statistics above"
+        worksheet['B12'].number_format = '"$"#,##0.00_);[Red]("$"#,##0.00)'
+        worksheet['C12'] = "What is the non-recurring cost of the IRU?"
 
-        # Row 13: Margin
-        worksheet['A13'] = "Margin"
-        worksheet['B13'] = 0.01  # 1%
-        worksheet['B13'].number_format = '0.00%'
-        worksheet['C13'] = "Overall margin, adjust individual line items below"
+        # Set column widths to match reference
+        worksheet.column_dimensions['A'].width = 39.57
+        worksheet.column_dimensions['B'].width = 16.43
+        worksheet.column_dimensions['C'].width = 43.0
+        worksheet.column_dimensions['D'].width = 24.86
+        worksheet.column_dimensions['E'].width = 33.14
+        worksheet.column_dimensions['F'].width = 8.86
 
-        # Row 14: Blank
-
-        # Row 15: Insurance Rate
-        worksheet['A15'] = "Insurance Rate"
-        worksheet['B15'] = 0.0035
-
-        # Row 16: Build Cost
-        worksheet['A16'] = "Build Cost"
-        worksheet['B16'] = 3500000
-        worksheet['B16'].number_format = '"$"#,##0_);[Red]("$"#,##0)'
-
-        # Set column widths
-        worksheet.column_dimensions['A'].width = 26.83
-        worksheet.column_dimensions['B'].width = 10.66
-        worksheet.column_dimensions['C'].width = 42.5
-        worksheet.column_dimensions['D'].width = 13.0
+        # Apply Arial font to all cells
+        self._apply_arial_font(worksheet, max_row=12, max_col=6)
 
     def _write_summary_sheet(
         self,
@@ -845,7 +882,7 @@ class MaintenanceEstimateGenerator:
         """Write formatted summary sheet with pricing table.
 
         Returns:
-            Dictionary with leg_row_mapping and total_cost_row for Quote sheet references
+            Dictionary with leg_row_mapping, total_cost_row, and total_cost_lease_row for Quote sheet references
         """
         from openpyxl.styles import Font
 
@@ -854,15 +891,17 @@ class MaintenanceEstimateGenerator:
 
         # Row 1: Title
         worksheet['A1'] = "Project - O&M Maintenance Estimate"
-        worksheet['A1'].font = Font(bold=True)
+        worksheet['A1'].font = Font(name="Arial", bold=True)
 
         # Row 2: Generated timestamp
         worksheet['A2'] = f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
         # Row 3: Blank
-        # Row 4: SUMMARY STATISTICS header
-        worksheet['A4'] = "SUMMARY STATISTICS"
-        worksheet['A4'].font = Font(bold=True)
+        # Row 4: Statistics header
+        worksheet['A4'] = "Statistics"
+        worksheet['A4'].font = Font(name="Arial", bold=True)
+        worksheet['B4'] = "Counts"
+        worksheet['C4'] = "Description"
 
         # Rows 5+: Summary statistics (dynamic based on filter stats)
         row = 5
@@ -872,6 +911,9 @@ class MaintenanceEstimateGenerator:
 
             # Handle different value types
             if 'Rate' in stat_row['Metric'] and isinstance(value, (int, float)):
+                # Skip row 10, add blank row
+                if row == 10:
+                    row += 1
                 # Assignment Rate - numeric value with percentage format
                 worksheet[f'B{row}'] = value
                 worksheet[f'B{row}'].number_format = '0.0%'
@@ -883,22 +925,19 @@ class MaintenanceEstimateGenerator:
             row += 1
 
         # Dynamic positioning based on number of summary stats
-        current_row = row + 1  # Blank row after summary stats
+        current_row = row + 2  # Blank row after summary stats
 
         # TICKETS PER ROUTE LEG section
         current_row += 1
-        worksheet[f'A{current_row}'] = "TICKETS PER ROUTE LEG"
-        worksheet[f'A{current_row}'].font = Font(bold=True)
-
-        current_row += 1
         worksheet[f'A{current_row}'] = "Route Leg"
+        worksheet[f'A{current_row}'].font = Font(name="Arial", bold=True)
         worksheet[f'B{current_row}'] = "Total Tickets"
         worksheet[f'C{current_row}'] = "Leg Length (Miles)"
         worksheet[f'D{current_row}'] = "Tickets/Mile"
 
         # Route leg data rows
         leg_start_row = current_row + 1
-        leg_row_mapping = {}  # Map leg names to row numbers for Quote sheet
+        leg_row_mapping = {}  # Map leg names to row numbers for Leg Details sheet
         for _, leg in leg_details_df.iterrows():
             current_row += 1
             leg_name = leg['Route Leg']
@@ -909,25 +948,45 @@ class MaintenanceEstimateGenerator:
             leg_row_mapping[leg_name] = current_row  # Store for Quote sheet
         leg_end_row = current_row
 
-        # Blank row + Pricing table
-        current_row += 2
+        # Blank rows + NOC section
+        current_row += 3
+        worksheet[f'A{current_row}'] = "Item"
+        worksheet[f'A{current_row}'].font = Font(name="Arial", bold=True)
+        worksheet[f'B{current_row}'] = "Cost"
+        worksheet[f'B{current_row}'].font = Font(name="Arial", bold=True)
+        worksheet[f'C{current_row}'] = "Type"
+        worksheet[f'C{current_row}'].font = Font(name="Arial", bold=True)
+
+        current_row += 1
+        worksheet[f'A{current_row}'] = "NOC Up-Front"
+        worksheet[f'B{current_row}'] = '=120*150'
+        worksheet[f'C{current_row}'] = "Non-recurring"
+
+        current_row += 1
+        noc_monthly_row = current_row
+        worksheet[f'A{current_row}'] = "Monthly NOC Cost"
+        worksheet[f'B{current_row}'] = 3000.00
+        worksheet[f'C{current_row}'] = "Monthly recurring"
+
+        # Blank rows + Pricing table
+        current_row += 3
         pricing_header_row = current_row
         worksheet[f'A{current_row}'] = "Line Item"
-        worksheet[f'A{current_row}'].font = Font(bold=True)
+        worksheet[f'A{current_row}'].font = Font(name="Arial", bold=True)
         worksheet[f'B{current_row}'] = "Estimate"
-        worksheet[f'B{current_row}'].font = Font(bold=True)
+        worksheet[f'B{current_row}'].font = Font(name="Arial", bold=True)
         worksheet[f'C{current_row}'] = "Margin"
-        worksheet[f'C{current_row}'].font = Font(bold=True)
+        worksheet[f'C{current_row}'].font = Font(name="Arial", bold=True)
         worksheet[f'D{current_row}'] = "Price"
-        worksheet[f'D{current_row}'].font = Font(bold=True)
+        worksheet[f'D{current_row}'].font = Font(name="Arial", bold=True)
 
         # NOC Monitoring Cost
         current_row += 1
         noc_row = current_row
         worksheet[f'A{current_row}'] = "NOC Monitoring Cost"
-        worksheet[f'B{current_row}'] = 3000.00
+        worksheet[f'B{current_row}'] = f'=B{noc_monthly_row}*12'
         worksheet[f'B{current_row}'].number_format = '"$"#,##0.00'
-        worksheet[f'C{current_row}'] = '=Inputs!$B$13'
+        worksheet[f'C{current_row}'] = 0.15  # 15% margin
         worksheet[f'C{current_row}'].number_format = '0%'
         worksheet[f'D{current_row}'] = f'=B{current_row}*(1+C{current_row})'
         worksheet[f'D{current_row}'].number_format = '"$"#,##0.00'
@@ -936,9 +995,9 @@ class MaintenanceEstimateGenerator:
         current_row += 1
         ins_row = current_row
         worksheet[f'A{current_row}'] = "Insurance Cost"
-        worksheet[f'B{current_row}'] = '=Inputs!B16*Inputs!B15'
+        worksheet[f'B{current_row}'] = '=Inputs!B10*Inputs!B9'
         worksheet[f'B{current_row}'].number_format = '"$"#,##0.00'
-        worksheet[f'C{current_row}'] = '=Inputs!$B$13'
+        worksheet[f'C{current_row}'] = 0.50  # 50% margin
         worksheet[f'C{current_row}'].number_format = '0%'
         worksheet[f'D{current_row}'] = f'=B{current_row}*(1+C{current_row})'
         worksheet[f'D{current_row}'].number_format = '"$"#,##0.00'
@@ -949,7 +1008,7 @@ class MaintenanceEstimateGenerator:
         worksheet[f'A{current_row}'] = "Maintenance Cost"
         worksheet[f'B{current_row}'] = "='Cost Projections'!I6"
         worksheet[f'B{current_row}'].number_format = '"$"#,##0.00'
-        worksheet[f'C{current_row}'] = '=Inputs!$B$13'
+        worksheet[f'C{current_row}'] = 0.40  # 40% margin
         worksheet[f'C{current_row}'].number_format = '0%'
         worksheet[f'D{current_row}'] = f'=B{current_row}*(1+C{current_row})'
         worksheet[f'D{current_row}'].number_format = '"$"#,##0.00'
@@ -960,32 +1019,49 @@ class MaintenanceEstimateGenerator:
         worksheet[f'A{current_row}'] = "Total Annual O&M Cost"
         worksheet[f'B{current_row}'] = f'=SUM(B{noc_row}:B{maint_row})'
         worksheet[f'B{current_row}'].number_format = '"$"#,##0.00'
-        worksheet[f'C{current_row}'] = "Total Price"
-        worksheet[f'C{current_row}'].font = Font(bold=True)
+        worksheet[f'B{current_row}'].font = Font(name="Arial", bold=True)
+        worksheet[f'C{current_row}'] = "Total Price (Annual)"
+        worksheet[f'C{current_row}'].font = Font(name="Arial", bold=True)
         worksheet[f'D{current_row}'] = f'=SUM(D{noc_row}:D{maint_row})'
         worksheet[f'D{current_row}'].number_format = '"$"#,##0.00'
-        worksheet[f'D{current_row}'].font = Font(bold=True)
+        worksheet[f'D{current_row}'].font = Font(name="Arial", bold=True)
 
-        # Percentage of Build Cost
+        # Total Cost of Lease (TCL)
         current_row += 1
-        worksheet[f'C{current_row}'] = "Percentage of Build Cost"
-        worksheet[f'D{current_row}'] = f'=D{total_row}/Inputs!B16'
+        total_cost_lease_row = current_row
+        worksheet[f'C{current_row}'] = "Total Cost of Lease (TCL)"
+        worksheet[f'C{current_row}'].font = Font(name="Arial", bold=True)
+        worksheet[f'D{current_row}'] = f'=20*D{total_row}'
+        worksheet[f'D{current_row}'].number_format = '"$"#,##0.00'
+        worksheet[f'D{current_row}'].font = Font(name="Arial", bold=True)
+
+        # TCL as a Percentage of Build Cost
+        current_row += 1
+        worksheet[f'C{current_row}'] = "TCL as a Percentage of Build Cost"
+        worksheet[f'C{current_row}'].font = Font(name="Arial", bold=True)
+        worksheet[f'D{current_row}'] = f'=D{total_cost_lease_row}/Inputs!B10'
         worksheet[f'D{current_row}'].number_format = '0.0%'
+        worksheet[f'D{current_row}'].font = Font(name="Arial", bold=True)
 
         # Store leg_start_row for Inputs sheet formula
         self._leg_start_row = leg_start_row
         self._leg_end_row = leg_end_row
 
-        # Set column widths
-        worksheet.column_dimensions['A'].width = 29.7
-        worksheet.column_dimensions['B'].width = 11.2
-        worksheet.column_dimensions['C'].width = 43.0
-        worksheet.column_dimensions['D'].width = 11.0
+        # Set column widths to match reference
+        worksheet.column_dimensions['A'].width = 33.57
+        worksheet.column_dimensions['B'].width = 20.14
+        worksheet.column_dimensions['C'].width = 38.14
+        worksheet.column_dimensions['D'].width = 19.43
+        worksheet.column_dimensions['E'].width = 8.86
+
+        # Apply Arial font to all cells
+        self._apply_arial_font(worksheet, max_row=current_row, max_col=5)
 
         # Return mapping for Quote sheet
         return {
             'leg_row_mapping': leg_row_mapping,
             'total_cost_row': total_row,
+            'total_cost_lease_row': total_cost_lease_row,
         }
 
     def _write_cost_projections_sheet(
@@ -1015,7 +1091,7 @@ class MaintenanceEstimateGenerator:
         for col_idx, header in enumerate(headers, start=1):
             cell = worksheet.cell(row=1, column=col_idx)
             cell.value = header
-            cell.font = Font(bold=True)
+            cell.font = Font(name="Arial", bold=True)
 
         # Rows 2-5: Data rows with formulas
         row = 2
@@ -1060,43 +1136,46 @@ class MaintenanceEstimateGenerator:
         # Row 6: Totals row
         last_data_row = row - 1
         worksheet[f'A{row}'] = "TOTAL"
-        worksheet[f'A{row}'].font = Font(bold=True)
+        worksheet[f'A{row}'].font = Font(name="Arial", bold=True)
 
         # Column B: Total annual tickets
         worksheet[f'B{row}'] = f'=SUM(B2:B{last_data_row})'
         worksheet[f'B{row}'].number_format = '0.00'
-        worksheet[f'B{row}'].font = Font(bold=True)
+        worksheet[f'B{row}'].font = Font(name="Arial", bold=True)
 
         # Column C: Total monthly avg tickets
         worksheet[f'C{row}'] = f'=SUM(C2:C{last_data_row})'
         worksheet[f'C{row}'].number_format = '0.00'
-        worksheet[f'C{row}'].font = Font(bold=True)
+        worksheet[f'C{row}'].font = Font(name="Arial", bold=True)
 
         # Column D: Blank (no total for unit price)
         # Column E: Total annual locate cost
         worksheet[f'E{row}'] = f'=SUM(E2:E{last_data_row})'
         worksheet[f'E{row}'].number_format = '"$"#,##0.00'
-        worksheet[f'E{row}'].font = Font(bold=True)
+        worksheet[f'E{row}'].font = Font(name="Arial", bold=True)
 
         # Column F: Total adjusted ticket count
         worksheet[f'F{row}'] = f'=SUM(F2:F{last_data_row})'
         worksheet[f'F{row}'].number_format = '0.00'
-        worksheet[f'F{row}'].font = Font(bold=True)
+        worksheet[f'F{row}'].font = Font(name="Arial", bold=True)
 
         # Column G: Total estimated maintenance cost
         worksheet[f'G{row}'] = f'=SUM(G2:G{last_data_row})'
         worksheet[f'G{row}'].number_format = '"$"#,##0.00'
-        worksheet[f'G{row}'].font = Font(bold=True)
+        worksheet[f'G{row}'].font = Font(name="Arial", bold=True)
 
         # Column H: Total estimated locate cost
         worksheet[f'H{row}'] = f'=SUM(H2:H{last_data_row})'
         worksheet[f'H{row}'].number_format = '"$"#,##0.00'
-        worksheet[f'H{row}'].font = Font(bold=True)
+        worksheet[f'H{row}'].font = Font(name="Arial", bold=True)
 
         # Column I: Total maintenance cost (THIS IS REFERENCED IN Maintenance Estimate B21)
         worksheet[f'I{row}'] = f'=SUM(I2:I{last_data_row})'
         worksheet[f'I{row}'].number_format = '"$"#,##0.00'
-        worksheet[f'I{row}'].font = Font(bold=True)
+        worksheet[f'I{row}'].font = Font(name='Arial', bold=True)
+
+        # Apply Arial font to all cells
+        self._apply_arial_font(worksheet, max_row=row, max_col=9)
 
 
 def generate_maintenance_estimate(
